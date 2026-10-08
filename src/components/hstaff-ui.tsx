@@ -1,0 +1,25 @@
+import { ArrowLeft, ArrowRight, BadgeCheck, Check, Clock3, Home, MapPin, Navigation, Star, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { fee, rupees, type Booking, type Professional, type Service } from '@/lib/hstaff-data';
+import type { ReactNode } from 'react';
+
+export function ScreenHeading({ title, subtitle, back }: { title:string;subtitle?:string;back?:()=>void }) {
+  return <div className="screen-heading">{back && <Button variant="ghost" size="icon" aria-label="Go back" onClick={back} className="-ml-3 mb-2"><ArrowLeft /></Button>}<h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>;
+}
+export function SectionHeading({ title, action, onClick }: {title:string;action?:string;onClick?:()=>void}) {
+  return <div className="section-heading"><h2>{title}</h2>{action && <Button variant="ghost" className="view-all" onClick={onClick}>{action}<ArrowRight /></Button>}</div>;
+}
+export function VerificationBadge() { return <span className="verified"><BadgeCheck />Identity Verified</span>; }
+export function Rating({ value }: {value:number}) { return <span className="rating"><Star />{value.toFixed(1)}</span>; }
+export function CategoryTile({ service, onClick }: {service:Service;onClick:()=>void}) { const Icon=service.icon;return <Button variant="tile" onClick={onClick}><span className="category-icon"><Icon /></span>{service.name}</Button>; }
+export function ProfessionalCard({ person,onClick,rate }: {person:Professional;onClick:()=>void;rate?:number}) {
+  return <article className="professional-card"><div className="professional-top"><img className="professional-photo" src={person.photo} alt={person.name} width={64} height={72} loading="lazy"/><div className="min-w-0"><h3>{person.name}</h3><VerificationBadge /><p className="quiet mt-1">{person.jobs} jobs completed</p></div><Rating value={person.rating}/></div><div className="professional-info"><span><Clock3 />{person.experience} yrs experience</span><span><MapPin />{person.distance} km</span><strong>{rupees(rate ?? person.rate)}<small className="quiet">/hr</small></strong></div><div className="professional-bottom"><span className="available">Available now</span><Button variant="ghost" onClick={onClick} className="view-profile">View Profile<ArrowRight/></Button></div></article>;
+}
+export function PriceBreakdown({ booking }: {booking:Booking}) { return <div className="summary"><div className="summary-row"><span>Professional charge · {booking.duration} hr</span><strong>{rupees(booking.rate*booking.duration)}</strong></div><div className="summary-row"><span>H-Staff service fee</span><strong>{rupees(fee)}</strong></div><div className="summary-row total"><span>Total</span><strong>{rupees(booking.rate*booking.duration+fee)}</strong></div></div>; }
+export function MapMockup({ tracking=false, city='Pune' }: {tracking?:boolean;city?:string}) {
+  return <div className="map" role="img" aria-label={tracking?`Professional on Baner Road, travelling to your home in ${city}. Estimated arrival 14 minutes.`:`Home at Green Park, Baner, ${city}.`}><svg viewBox="0 0 360 260" className="map-svg" aria-hidden="true"><path className="map-block" d="M0 0H95V63H0ZM109 0H214V80H109ZM232 0H360V63H232ZM0 85H91V158H0ZM117 101H210V171H117ZM236 86H360V157H236ZM0 180H96V260H0ZM112 197H213V260H112ZM239 181H360V260H239Z"/><path className="map-park" d="M245 100h86v44h-86zM120 207h70v43h-70z"/><path className="map-road" d="M-20 173L380 173M103 -20V280M225 -20V280M0 75H380"/><text className="map-label" x="121" y="95">BANER</text><text className="map-label" x="251" y="128">Green Park</text><text className="map-label" x="142" y="168">Baner Road</text><text className="map-label" x="25" y="232">Balewadi</text>{tracking && <path className="map-route" d="M99 184V173H225V74H256"/>}</svg><div className="map-pin-home"><Home /></div>{tracking && <div className="map-pin-worker"><Navigation /></div>}<span className="map-caption">{city} · {tracking?'ETA 14 min':'Service area'}</span></div>;
+}
+export function OTPDisplay({ code }: {code:string}) { return <div className="otp-display" aria-label={`Your code is ${code.split('').join(' ')}`}>{code.split('').map((n,i)=><span className="otp-digit" key={i}>{n}</span>)}</div>; }
+export function EmptyState({ title,description,action,onClick }: {title:string;description:string;action?:string;onClick?:()=>void}) { return <div className="empty-state"><Clock3/><h2>{title}</h2><p>{description}</p>{action && <Button onClick={onClick}>{action}<ArrowRight/></Button>}</div>; }
+export function BottomSheet({ title,children,onClose }: {title:string;children:ReactNode;onClose:()=>void}) { return <div className="modal-overlay" onClick={onClose}><div className="bottom-sheet" role="dialog" aria-modal="true" aria-label={title} onClick={e=>e.stopPropagation()}><div className="sheet-handle"/><div className="sheet-heading"><h2>{title}</h2><Button variant="ghost" size="icon" aria-label="Close" onClick={onClose}><X/></Button></div><div className="sheet-body">{children}</div></div></div>; }
+export function SuccessIcon() { return <div className="state-icon"><Check/></div>; }

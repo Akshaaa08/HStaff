@@ -9,7 +9,7 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- H-Staff is a client-only interactive prototype at the index route, using a shared app controller and reusable UI primitives; native-style screens share booking context without server infrastructure.
-- Keep service data, professional fixtures and allowed booking transitions in the browser-safe domain module so both roles follow the same state model.
-- Use sessionStorage only for this explicitly mocked prototype's recovery, read after hydration; production persistence requires a connected backend.
-- Define H-Staff visual roles, geometry and animation centrally in the global design system and use shared Button variants for controls.
+## Application architecture
+- Keep mobile screens in a shared app shell with reusable primitives and a browser-safe domain module; this supports native-style navigation without duplicated presentation.
+- Validate simulated booking transitions with a client-side state machine and versioned local session recovery; this prototype intentionally has no backend infrastructure.
+- Centralize visual roles, dimensions and motion in the global token stylesheet; this keeps the Android blueprint consistent.

@@ -9,22 +9,23 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "hstaff-primary bg-primary text-primary-foreground hover:bg-secondary",
-        choice: "hstaff-choice",
-        tile: "hstaff-tile",
-        dock: "hstaff-dock-button",
+        default: "hstaff-primary bg-primary text-primary-foreground hover:bg-primary/90",
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
           "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        choice: "hstaff-choice",
+        dock: "hstaff-dock-button",
+        tile: "hstaff-service-tile",
+        quiet: "hstaff-quiet",
       },
       size: {
         default: "min-h-12 px-5 py-3",
-        sm: "h-8 rounded-md px-3 text-xs",
+        sm: "min-h-12 px-3 text-sm",
         lg: "min-h-14 px-7",
-        icon: "h-12 w-12 shrink-0",
+        icon: "h-12 w-12 p-0",
       },
     },
     defaultVariants: {

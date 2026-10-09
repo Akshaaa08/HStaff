@@ -1,6 +1,6 @@
 # H-Staff prototype
-- [ ] Brand, Android frame, design tokens and floating navigation
-- [ ] Customer discovery and complete booking-to-review journey
-- [ ] Professional requests, job execution, earnings and profile
-- [ ] Notifications, account screens, prototype recovery and exceptional states
-- [ ] Verify customer and professional flows on phone and desktop
+- [x] Mobile design system, original logo, phone frame and floating navigation.
+- [x] Customer discovery and complete booking-to-review journey.
+- [x] Professional setup, availability, job execution and earnings.
+- [x] Profiles, notifications, failure states and session recovery.
+- [x] Verify journeys, mobile layout and rules tests.

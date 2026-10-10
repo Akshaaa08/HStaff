@@ -50,5 +50,16 @@ services:
              node_modules/.bin/knex --knexfile knexfile.cjs seed:run &&
              node dist/server.js"
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - api
+    ports: ['5173:5173']
+    environment:
+      VITE_BACKEND_URL: http://api:4000
+      PORT: 5173
+
 volumes:
   pgdata:

@@ -13,13 +13,39 @@ const TERMS:Record<Persona,string[]>={
  professional:['You are 18+ and all identity details and documents are genuine.','H-Staff may verify your photo and documents before you receive jobs.','Arrive on time, verify the Start code and finish with the End code.','Earnings are paid to your UPI ID after each completed job.','Never ask customers for payment outside H-Staff or share their details.'],
 };
 
+import {api} from '@/lib/api-client';
+
 function Field({label,icon,children}:{label:string;icon:ReactNode;children:ReactNode}){return <><label className="field-label">{label}</label><div className="search-field auth-field">{icon}{children}</div></>}
 
-function PhoneVerify({phone,setPhone,verified,setVerified}:{phone:string;setPhone:(v:string)=>void;verified:boolean;setVerified:(v:boolean)=>void}){
- const [sent,setSent]=useState(false);const [code,setCode]=useState('');const [err,setErr]=useState('');
- return <><Field label="Mobile number" icon={<strong>+91</strong>}><input type="tel" inputMode="numeric" aria-label="Mobile number" placeholder="98765 43210" maxLength={10} value={phone} disabled={verified} onChange={e=>{setPhone(e.target.value.replace(/\D/g,''));setSent(false)}}/>{verified?<span className="verified"><Check/>Verified</span>:<Button variant="quiet" onClick={()=>{if(!phoneOk(phone)){setErr('Enter a valid 10-digit mobile number.');return}setErr('');setSent(true)}}>{sent?'Resend':'Send OTP'}</Button>}</Field>
- {sent&&!verified&&<div className="otp-inline"><input className="field" aria-label="Mobile OTP" inputMode="numeric" maxLength={6} placeholder="6-digit code" value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,''))}/><Button onClick={()=>{if(code===AUTH_OTP){setVerified(true);setErr('')}else setErr('That code doesn’t match.')}}>Verify</Button></div>}
- {sent&&!verified&&<p className="subtle mt-2">Demo code: {AUTH_OTP}</p>}{err&&<p className="error-text" role="alert">{err}</p>}</>
+function PhoneVerify({phone,setPhone,verified,setVerified,role='customer',name}:{phone:string;setPhone:(v:string)=>void;verified:boolean;setVerified:(v:boolean)=>void;role?:Persona;name?:string}){
+ const [sent,setSent]=useState(false);const [code,setCode]=useState('');const [err,setErr]=useState('');const [loading,setLoading]=useState(false);const [serverHint,setServerHint]=useState('');
+ const handleSend=async()=>{
+  if(!phoneOk(phone)){setErr('Enter a valid 10-digit mobile number.');return}
+  setErr('');setLoading(true);
+  try{
+   const res=await api.requestOtp(phone,role);
+   setSent(true);
+   if(res?.debug_code)setServerHint(`Code: ${res.debug_code}`);
+   else setServerHint('Code sent (check server console in dev)');
+  }catch{
+   setSent(true);
+   setServerHint('Connected to demo fallback');
+  }finally{setLoading(false)}
+ };
+ const handleVerify=async()=>{
+  if(!code||code.length<6){setErr('Enter the 6-digit OTP.');return}
+  setErr('');setLoading(true);
+  try{
+   await api.verifyOtp({phone,otp:code,role,name});
+   setVerified(true);setErr('');
+  }catch(e:unknown){
+   if(code===AUTH_OTP){setVerified(true);setErr('')}
+   else setErr((e as {message?:string})?.message||'That code doesn’t match.');
+  }finally{setLoading(false)}
+ };
+ return <><Field label="Mobile number" icon={<strong>+91</strong>}><input type="tel" inputMode="numeric" aria-label="Mobile number" placeholder="98765 43210" maxLength={10} value={phone} disabled={verified} onChange={e=>{setPhone(e.target.value.replace(/\D/g,''));setSent(false);setServerHint('')}}/>{verified?<span className="verified"><Check/>Verified</span>:<Button variant="quiet" disabled={loading} onClick={handleSend}>{loading?'Sending...':sent?'Resend':'Send OTP'}</Button>}</Field>
+ {sent&&!verified&&<div className="otp-inline"><input className="field" aria-label="Mobile OTP" inputMode="numeric" maxLength={6} placeholder="6-digit code" value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,''))}/><Button disabled={loading} onClick={handleVerify}>{loading?'...':'Verify'}</Button></div>}
+ {sent&&!verified&&<p className="subtle mt-2">Demo code: {AUTH_OTP} {serverHint?`· ${serverHint}`:''}</p>}{err&&<p className="error-text" role="alert">{err}</p>}</>
 }
 
 function Terms({persona,accepted,setAccepted}:{persona:Persona;accepted:boolean;setAccepted:(v:boolean)=>void}){

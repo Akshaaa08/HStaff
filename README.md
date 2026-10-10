@@ -4,31 +4,46 @@ On-demand hourly staffing marketplace: clients book verified workers by the hour
 geofence + OTP, hours are billed from a server-side timesheet, and payment is split into worker payout and
 platform commission.
 
-This repository currently contains the **backend** (TRD milestones M0 to M7, plus the realtime layer M9 and OPEN
-mode M12 on the server side). The mobile apps and admin web UI are separate clients of this API.
+This repository contains the complete full-stack project:
+- **`backend/`**: Express + TypeScript API, Socket.IO realtime layer, Knex migrations, seeds, test suites
+- **`frontend/`**: Vite + TanStack Start + React 19 mobile-first client application
+- **`docs/openapi.yaml`**: API reference (served at `/docs`)
+- **`SETUP_GUIDE.md`**: Complete step-by-step setup guide for Docker, Redis, Neon, Supabase, Razorpay & Android Studio
+- **`updates.md`**: Living project tracker documenting completed milestones and architectural progress
+- **`docker-compose.yml`**: Full-stack multi-container orchestration (PostgreSQL+PostGIS, Redis, API, and Frontend)
 
 ```
-backend/         Express + TypeScript API, Socket.IO, cron jobs, migrations, seeds, tests
-docs/openapi.yaml            API reference (served at /docs). Generated: node backend/scripts/gen-openapi.mjs
-docs/decisions.md            Every place the TRD was silent or ambiguous, and what was chosen
-docs/frontend-integration.md How the Lovable prototype's screens map onto this API
-docker-compose.yml           Postgres+PostGIS, Redis, API with seed data
+backend/             Express + TypeScript API, Socket.IO, cron jobs, migrations, seeds, tests
+frontend/            Vite + React 19 mobile-first application & typed API client
+SETUP_GUIDE.md       Step-by-step guide: Docker, Redis, Neon, Supabase, Android Studio
+updates.md           Project progress, milestone tracker, and changelog
+docker-compose.yml   Postgres+PostGIS, Redis, API, and Frontend web app
 ```
 
 ## Run it
 
-### Docker (one command)
+### Option 1: Docker (One command for all 4 services)
 
 ```bash
 docker compose up --build
-curl localhost:4000/health          # {"status":"ok","db":true,"redis":true,...}
-open http://localhost:4000/docs     # Swagger UI
+# Backend API:    http://localhost:4000
+# OpenAPI Docs:   http://localhost:4000/docs
+# Health Check:   curl http://localhost:4000/health
+# Frontend App:   http://localhost:5173
 ```
 
-Migrations and the seed run automatically. Development mode uses a local-disk fallback for uploads, so no Supabase
-account is needed.
+### Option 2: Local Development (Windows / Node)
 
-### Without Docker
+Run both Backend and Frontend concurrently:
+```powershell
+.\run-dev.ps1
+```
+
+Or from the repository root:
+```bash
+npm run dev:backend    # Starts API on :4000
+npm run dev:frontend   # Starts Frontend on :5173
+```
 
 Needs Node >= 20.12, PostgreSQL 16 with PostGIS, Redis.
 

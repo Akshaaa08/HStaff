@@ -2,24 +2,20 @@ package dev.hstaff.client.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import dev.hstaff.client.R
 
-// Inter font family — matches --font-sans: 'Inter', sans-serif in the web app.
-// Download Inter TTF files into res/font/ (inter_regular.ttf, inter_medium.ttf,
-// inter_semibold.ttf, inter_bold.ttf, inter_extrabold.ttf).
-// If you prefer to load from Google Fonts at runtime, replace with
-// GoogleFont("Inter") using the downloadable-fonts API.
-val InterFontFamily = FontFamily(
-    Font(R.font.inter_regular, FontWeight.Normal),
-    Font(R.font.inter_medium, FontWeight.Medium),
-    Font(R.font.inter_semibold, FontWeight.SemiBold),
-    Font(R.font.inter_bold, FontWeight.Bold),
-    Font(R.font.inter_extrabold, FontWeight.ExtraBold),
-)
+// Inter font family — uses system default sans-serif as the fallback.
+// To use the real Inter typeface, either:
+//   A) Place inter_regular.ttf, inter_medium.ttf, inter_semibold.ttf,
+//      inter_bold.ttf, inter_extrabold.ttf in res/font/ and restore the
+//      Font(R.font.*) references below, OR
+//   B) Use the Downloadable Fonts API (requires internet on first launch).
+//
+// For now we use FontFamily.SansSerif so the project compiles immediately
+// with no font asset dependency.
+val InterFontFamily = FontFamily.SansSerif
 
 // HStaff Material 3 Typography
 val HStaffTypography = Typography(

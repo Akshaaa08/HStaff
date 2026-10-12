@@ -1,31 +1,11 @@
-package dev.hstaff.client.data.remote
-
-import dev.hstaff.client.BuildConfig
-import dev.hstaff.client.data.remote.dto.AuthOtpRequestDto
-import dev.hstaff.client.data.remote.dto.AuthOtpVerifyDto
-import dev.hstaff.client.data.remote.dto.CreateShiftDto
-import dev.hstaff.client.data.remote.dto.HealthDto
-import dev.hstaff.client.data.remote.dto.OtpResponseDto
-import dev.hstaff.client.data.remote.dto.ShiftDto
-import dev.hstaff.client.data.remote.dto.TokenDto
-import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Header
-import java.util.concurrent.TimeUnit
-
-// ── DTOs ─────────────────────────────────────────────────────────────────────
-
 package dev.hstaff.client.data.remote.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+
+// ── DTOs (Data Transfer Objects) ─────────────────────────────────────────────
+// These map 1-to-1 with the HStaff REST API JSON payloads.
+// See docs/openapi.yaml for the full contract.
 
 @Serializable
 data class HealthDto(

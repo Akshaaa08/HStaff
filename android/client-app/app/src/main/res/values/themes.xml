@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Placeholder style — actual theming is done in Compose -->
-    <style name="Theme.HStaffClient" parent="Theme.Material3.DayNight.NoActionBar" />
-</resources>

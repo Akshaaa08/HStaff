@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { AuditService } from '../audit/audit.service';
 import { FeedbackService } from './feedback.service';
+import { ComplaintDto, RateDto, ResolveComplaintDto } from '../common/dto';
 
 @Controller()
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -12,13 +13,13 @@ export class FeedbackController {
 
   @Post('ratings')
   @Roles('USER', 'WORKER')
-  rate(@Req() req: any, @Body() body: any) {
+  rate(@Req() req: any, @Body() body: RateDto) {
     return this.svc.rate(req.user.userId, body);
   }
 
   @Post('complaints')
   @Roles('USER', 'WORKER')
-  complain(@Req() req: any, @Body() body: any) {
+  complain(@Req() req: any, @Body() body: ComplaintDto) {
     return this.svc.complain(req.user.userId, body);
   }
 
@@ -30,7 +31,7 @@ export class FeedbackController {
 
   @Patch('admin/complaints/:id')
   @Roles('ADMIN')
-  async resolve(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+  async resolve(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: ResolveComplaintDto) {
     const c = await this.svc.resolve(id, body);
     await this.audit.log(req.user.userId, 'COMPLAINT_' + c.status, 'Complaint', id, {
       resolution: c.resolution,

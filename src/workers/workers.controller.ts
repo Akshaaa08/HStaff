@@ -3,6 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { WorkersService } from './workers.service';
+import { SetAvailabilityDto, UpsertWorkerDto } from '../common/dto';
 
 @Controller('workers')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -16,7 +17,7 @@ export class WorkersController {
   }
 
   @Put('me')
-  updateMe(@Req() req: any, @Body() body: any) {
+  updateMe(@Req() req: any, @Body() body: UpsertWorkerDto) {
     return this.workers.upsertMe(req.user.userId, body);
   }
 
@@ -26,7 +27,7 @@ export class WorkersController {
   }
 
   @Put('availability')
-  setAvailability(@Req() req: any, @Body() body: { slots: any[] }) {
+  setAvailability(@Req() req: any, @Body() body: SetAvailabilityDto) {
     return this.workers.setAvailability(req.user.userId, body.slots);
   }
 

@@ -1,7 +1,8 @@
 ﻿import {
-  IsArray, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString,
-  IsUUID, Length, Matches, Max, MaxLength, Min, ValidateIf,IsBoolean
+  ArrayMaxSize, IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsNotEmpty, IsNumber,
+  IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min, ValidateIf, ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class RequestOtpDto {
   @Matches(/^\d{10}$/, { message: 'phone must be 10 digits' })
@@ -70,4 +71,100 @@ export class PayDto {
 
   @IsOptional() @IsBoolean()
   simulateFail?: boolean;
+}
+// ---------- start / end job ----------
+export class VerifyJobDto {
+  @Matches(/^\d{6}$/, { message: 'otp must be 6 digits' })
+  otp: string;
+
+  @IsNumber() @Min(-90) @Max(90)
+  latitude: number;
+
+  @IsNumber() @Min(-180) @Max(180)
+  longitude: number;
+}
+
+// ---------- ratings and complaints ----------
+export class RateDto {
+  @IsUUID()
+  assignmentId: string;
+
+  // the service accepts either "rating" or "score"
+  @IsOptional() @IsInt() @Min(1) @Max(5)
+  rating?: number;
+
+  @IsOptional() @IsInt() @Min(1) @Max(5)
+  score?: number;
+
+  @IsOptional() @IsArray() @ArrayMaxSize(10) @IsString({ each: true })
+  tags?: string[];
+
+  @IsOptional() @IsString() @MaxLength(500)
+  comment?: string;
+}
+
+export class ComplaintDto {
+  @IsUUID()
+  assignmentId: string;
+
+  @IsIn(['NO_SHOW', 'POOR_QUALITY', 'OVERCHARGING', 'UNPROFESSIONAL', 'DAMAGED_PROPERTY', 'OTHER'])
+  category: string;
+
+  @IsString() @IsNotEmpty() @MaxLength(1000)
+  description: string;
+}
+
+export class ResolveComplaintDto {
+  @IsIn(['RESOLVED', 'DISMISSED'])
+  status: 'RESOLVED' | 'DISMISSED';
+
+  @IsString() @IsNotEmpty() @MaxLength(1000)
+  resolution: string;
+}
+
+// ---------- worker profile and availability ----------
+export class UpsertWorkerDto {
+  @IsOptional() @IsInt() @Min(0) @Max(60)
+  experienceYears?: number;
+
+  @IsOptional() @IsNumber() @Min(0)
+  baseHourlyRate?: number;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(100)
+  serviceRadiusKm?: number;
+
+  @IsOptional() @IsNumber() @Min(-90) @Max(90)
+  latitude?: number;
+
+  @IsOptional() @IsNumber() @Min(-180) @Max(180)
+  longitude?: number;
+
+  @IsOptional() @IsString() @MaxLength(500)
+  profileImageUrl?: string;
+
+  @IsOptional() @IsArray() @IsInt({ each: true }) @Min(1, { each: true })
+  categoryIds?: number[];
+
+  @IsOptional() @IsArray() @IsInt({ each: true }) @Min(1, { each: true })
+  skillIds?: number[];
+}
+
+const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+export class AvailabilitySlotDto {
+  @IsInt() @Min(0) @Max(6)
+  dayOfWeek: number;
+
+  @Matches(TIME, { message: 'startTime must look like 09:30' })
+  startTime: string;
+
+  @Matches(TIME, { message: 'endTime must look like 17:00' })
+  endTime: string;
+}
+
+export class SetAvailabilityDto {
+  @IsArray() @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => AvailabilitySlotDto)
+  slots: AvailabilitySlotDto[];
 }

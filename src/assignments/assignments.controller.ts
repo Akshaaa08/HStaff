@@ -3,6 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { AssignmentsService } from './assignments.service';
+import { VerifyJobDto } from '../common/dto';
 
 @Controller()
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -39,7 +40,7 @@ export class AssignmentsController {
 
   @Post('assignments/:id/start')
   @Roles('WORKER')
-  start(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+  start(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: VerifyJobDto) {
     return this.svc.verify(req.user, id, 'start', body);
   }
 
@@ -51,7 +52,7 @@ export class AssignmentsController {
 
   @Post('assignments/:id/end')
   @Roles('WORKER')
-  end(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+  end(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: VerifyJobDto) {
     return this.svc.verify(req.user, id, 'end', body);
   }
 

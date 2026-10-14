@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { PrismaService } from '../prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { SetVerificationDto } from '../common/dto';
 
 @Controller('admin')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -22,8 +23,8 @@ export class AdminController {
   @Patch('workers/:id/verification')
   async setStatus(
     @Req() req: any,
-    @Param('id') id: string,
-    @Body() body: { status: 'VERIFIED' | 'REJECTED' },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetVerificationDto,
   ) {
     const w = await this.prisma.workerProfile.update({
       where: { id },

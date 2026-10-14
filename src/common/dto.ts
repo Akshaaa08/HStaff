@@ -1,6 +1,6 @@
 ﻿import {
   IsArray, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString,
-  IsUUID, Length, Matches, Max, MaxLength, Min, ValidateIf,
+  IsUUID, Length, Matches, Max, MaxLength, Min, ValidateIf,IsBoolean
 } from 'class-validator';
 
 export class RequestOtpDto {
@@ -58,4 +58,16 @@ export class CreateOfferDto {
 
   @IsUUID()
   workerId: string;
+}
+export class SetVerificationDto {
+  @IsIn(['VERIFIED', 'REJECTED'])
+  status: 'VERIFIED' | 'REJECTED';
+}
+
+export class PayDto {
+  @IsUUID()
+  timesheetId: string;
+
+  @IsOptional() @IsBoolean()
+  simulateFail?: boolean;
 }

@@ -1,5 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { PrismaService } from './prisma.service';
 import { RedisService } from './redis.service';
@@ -19,6 +21,8 @@ import { EventsModule } from './events/events.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    // 100 requests per minute per client
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     AuthModule,
     WorkersModule,
     AdminModule,
@@ -31,7 +35,11 @@ import { EventsModule } from './events/events.module';
     EventsModule,
   ],
   controllers: [AppController],
-  providers: [PrismaService, RedisService],
+  providers: [
+    PrismaService,
+    RedisService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
   exports: [PrismaService, RedisService],
 })
 export class AppModule {}

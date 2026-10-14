@@ -1,0 +1,354 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  WORKER
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum BookingMode {
+  INSTANT
+  SCHEDULED
+}
+
+enum RequestStatus {
+  OPEN
+  REQUESTED
+  ACCEPTED
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum AssignmentStatus {
+  CONFIRMED
+  EN_ROUTE
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TimesheetStatus {
+  PENDING_APPROVAL
+  APPROVED
+  DISPUTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  SETTLED
+}
+
+enum ComplaintCategory {
+  NO_SHOW
+  POOR_QUALITY
+  OVERCHARGING
+  UNPROFESSIONAL
+  DAMAGED_PROPERTY
+  OTHER
+}
+
+enum ComplaintStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+model User {
+  id                String           @id @default(uuid())
+  phone             String           @unique
+  name              String?
+  role              Role             @default(USER)
+  phoneVerifiedAt   DateTime?
+  status            String           @default("ACTIVE")
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  workerProfile     WorkerProfile?
+  serviceRequests   ServiceRequest[]
+  ratingsGiven      Rating[]         @relation("RatingsGiven")
+  ratingsReceived   Rating[]         @relation("RatingsReceived")
+  complaintsMade    Complaint[]      @relation("ComplaintsMade")
+  complaintsAgainst Complaint[]      @relation("ComplaintsAgainst")
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  phone     String
+  codeHash  String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
+
+model Category {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String?
+  active      Boolean          @default(true)
+  skills      Skill[]
+  workers     WorkerCategory[]
+  requests    ServiceRequest[]
+}
+
+model Skill {
+  id         Int           @id @default(autoincrement())
+  category   Category      @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  name       String
+  active     Boolean       @default(true)
+  workers    WorkerSkill[]
+
+  @@unique([categoryId, name])
+}
+
+model WorkerProfile {
+  id                 String             @id @default(uuid())
+  user               User               @relation(fields: [userId], references: [id])
+  userId             String             @unique
+  profileImageUrl    String?
+  verificationStatus VerificationStatus @default(PENDING)
+  experienceYears    Int                @default(0)
+  baseHourlyRate     Int                @default(0)
+  serviceRadiusKm    Int                @default(10)
+  latitude           Float?
+  longitude          Float?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  categories         WorkerCategory[]
+  skills             WorkerSkill[]
+  offers             WorkerOffer[]
+  assignments        Assignment[]
+  payouts            Payout[]
+    availability WorkerAvailability[]
+}
+
+model WorkerCategory {
+  worker     WorkerProfile @relation(fields: [workerId], references: [id])
+  workerId   String
+  category   Category      @relation(fields: [categoryId], references: [id])
+  categoryId Int
+
+  @@id([workerId, categoryId])
+}
+
+model WorkerSkill {
+  worker   WorkerProfile @relation(fields: [workerId], references: [id])
+  workerId String
+  skill    Skill         @relation(fields: [skillId], references: [id])
+  skillId  Int
+
+  @@id([workerId, skillId])
+}
+
+model ServiceRequest {
+  id            String        @id @default(uuid())
+  user          User          @relation(fields: [userId], references: [id])
+  userId        String
+  category      Category      @relation(fields: [categoryId], references: [id])
+  categoryId    Int
+  bookingMode   BookingMode   @default(INSTANT)
+  startAt       DateTime
+  durationHours Int           @default(1)
+  latitude      Float
+  longitude     Float
+  address       String?
+  notes         String?
+  status        RequestStatus @default(OPEN)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  offers        WorkerOffer[]
+  assignments   Assignment[]
+    skillIds Int[] @default([])
+}
+
+model WorkerOffer {
+  id               String         @id @default(uuid())
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id])
+  serviceRequestId String
+  worker           WorkerProfile  @relation(fields: [workerId], references: [id])
+  workerId         String
+  offeredRate      Int
+  distanceKm       Float?
+  status           OfferStatus    @default(PENDING)
+  expiresAt        DateTime
+  respondedAt      DateTime?
+  createdAt        DateTime       @default(now())
+}
+
+model Assignment {
+  id               String             @id @default(uuid())
+  serviceRequest   ServiceRequest     @relation(fields: [serviceRequestId], references: [id])
+  serviceRequestId String             @unique
+  worker           WorkerProfile      @relation(fields: [workerId], references: [id])
+  workerId         String
+  agreedHourlyRate Int
+  platformFee      Int                @default(50)
+  status           AssignmentStatus   @default(CONFIRMED)
+  acceptedAt       DateTime           @default(now())
+  startedAt        DateTime?
+  completedAt      DateTime?
+  attendance       AttendanceSession?
+  timesheet        Timesheet?
+  ratings          Rating[]
+  complaints       Complaint[]
+}
+
+model AttendanceSession {
+  id                String     @id @default(uuid())
+  assignment        Assignment @relation(fields: [assignmentId], references: [id])
+  assignmentId      String     @unique
+  startOtpHash      String?
+  startOtpExpiresAt DateTime?
+  endOtpHash        String?
+  endOtpExpiresAt   DateTime?
+  startAt           DateTime?
+  endAt             DateTime?
+  startLat          Float?
+  startLng          Float?
+  endLat            Float?
+  endLng            Float?
+}
+
+model Timesheet {
+  id                String          @id @default(uuid())
+  assignment        Assignment      @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  assignmentId      String          @unique
+  verifiedHours     Float
+  hourlyRate        Int
+  grossWorkerAmount Int
+  platformFee       Int
+  customerTotal     Int
+  status            TimesheetStatus @default(PENDING_APPROVAL)
+  submittedAt       DateTime        @default(now())
+  approvedAt        DateTime?
+  payment           Payment?
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  timesheetId String        @unique
+  timesheet   Timesheet     @relation(fields: [timesheetId], references: [id], onDelete: Restrict)
+  amount      Int
+  currency    String        @default("INR")
+  status      PaymentStatus @default(PENDING)
+  gatewayRef  String?
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  payout      Payout?
+
+  @@index([status])
+}
+
+model Payout {
+  id        String        @id @default(uuid())
+  payment   Payment       @relation(fields: [paymentId], references: [id])
+  paymentId String        @unique
+  worker    WorkerProfile @relation(fields: [workerId], references: [id])
+  workerId  String
+  amount    Int
+  status    PaymentStatus @default(PENDING)
+  settledAt DateTime?
+  createdAt DateTime      @default(now())
+}
+
+model Rating {
+  id           String     @id @default(uuid())
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  assignmentId String
+  rater        User       @relation("RatingsGiven", fields: [raterId], references: [id], onDelete: Restrict)
+  raterId      String
+  ratee        User       @relation("RatingsReceived", fields: [rateeId], references: [id], onDelete: Restrict)
+  rateeId      String
+  score        Int
+  tags         String[]
+  comment      String?
+  createdAt    DateTime   @default(now())
+
+  @@unique([assignmentId, raterId])
+  @@index([raterId])
+  @@index([rateeId])
+}
+
+model Complaint {
+  id            String            @id @default(uuid())
+  assignment    Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  assignmentId  String
+  complainant   User              @relation("ComplaintsMade", fields: [complainantId], references: [id], onDelete: Restrict)
+  complainantId String
+  respondent    User              @relation("ComplaintsAgainst", fields: [respondentId], references: [id], onDelete: Restrict)
+  respondentId  String
+  category      ComplaintCategory
+  description   String
+  status        ComplaintStatus   @default(PENDING)
+  resolution    String?
+  resolvedAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([complainantId])
+  @@index([respondentId])
+  @@index([status])
+}
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+model WorkerAvailability {
+  id          String        @id @default(uuid())
+  worker      WorkerProfile @relation(fields: [workerId], references: [id])
+  workerId    String
+  dayOfWeek   Int
+  startMinute Int
+  endMinute   Int
+  active      Boolean       @default(true)
+
+  @@index([workerId])
+}

@@ -1,10 +1,17 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { PaymentGateway } from './payment-gateway';
 
 @Injectable()
 export class PaymentsService {
-  constructor(private prisma: PrismaService, private events: EventsGateway) {}
+  constructor(
+    private prisma: PrismaService,
+    private events: EventsGateway,
+    private gateway: PaymentGateway,
+  ) {}
 
   // Mock gateway: succeeds unless simulateFail is true.
   async pay(userId: string, body: { timesheetId: string; simulateFail?: boolean }) {
@@ -16,6 +23,7 @@ export class PaymentsService {
     if (t.assignment.serviceRequest.userId !== userId) throw new ForbiddenException('Not your timesheet');
     if (t.status !== 'APPROVED') throw new BadRequestException('Approve the timesheet before paying');
     if (t.payment?.status === 'SUCCEEDED') throw new BadRequestException('Already paid');
+    if (t.payment?.status === 'REFUNDED') throw new BadRequestException('This payment was refunded');
 
     const ok = !body.simulateFail;
     const data = {
@@ -62,5 +70,78 @@ export class PaymentsService {
     if (a.serviceRequest.userId !== userId && a.worker.userId !== userId) throw new ForbiddenException();
     const { timesheet, ...payment } = p;
     return payment;
+  }
+
+  // ADMIN: refund a payment, fully or partially.
+  async refund(adminId: string, paymentId: string, body: { amount?: number; reason: string }) {
+    const p = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: {
+        payout: true,
+        timesheet: { include: { assignment: { include: { serviceRequest: true, worker: true } } } },
+      },
+    });
+    if (!p) throw new NotFoundException('Payment not found');
+    if (p.status !== 'SUCCEEDED') {
+      throw new BadRequestException(`Only a SUCCEEDED payment can be refunded (this one is ${p.status})`);
+    }
+    if (p.payout && (p.payout.status === 'SETTLED' || p.payout.status === 'PROCESSING')) {
+      throw new BadRequestException(`Payout is already ${p.payout.status}, refund is not allowed`);
+    }
+
+    const remaining = p.amount - p.refundedAmount;
+    const amount = body.amount ?? remaining;
+    if (amount < 1 || amount > remaining) {
+      throw new BadRequestException(`Refund must be between 1 and ${remaining}`);
+    }
+    const totalRefunded = p.refundedAmount + amount;
+    const full = totalRefunded === p.amount;
+
+    const { ref, payment } = await this.prisma.$transaction(async (tx) => {
+      // Lock: fails if another refund changed this payment a moment ago.
+      const locked = await tx.payment.updateMany({
+        where: { id: p.id, status: 'SUCCEEDED', refundedAmount: p.refundedAmount },
+        data: {
+          refundedAmount: totalRefunded,
+          refundReason: body.reason,
+          refundedAt: new Date(),
+          status: full ? 'REFUNDED' : 'SUCCEEDED',
+        },
+      });
+      if (locked.count === 0) throw new ConflictException('Payment changed, please try again');
+
+      // If the gateway fails, this throws and the database changes roll back.
+      const { ref } = await this.gateway.refund(p.gatewayRef, amount);
+
+      // The refund comes out of the worker's pending payout.
+      if (p.payout && p.payout.status === 'PENDING') {
+        const left = Math.max(0, p.payout.amount - amount);
+        await tx.payout.update({
+          where: { id: p.payout.id },
+          data: left === 0 ? { amount: 0, status: 'REFUNDED' as const } : { amount: left },
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          actorId: adminId,
+          action: full ? 'PAYMENT_REFUNDED' : 'PAYMENT_PARTIALLY_REFUNDED',
+          entityType: 'Payment',
+          entityId: p.id,
+          metadata: { amount, reason: body.reason, refundRef: ref },
+        },
+      });
+
+      const payment = await tx.payment.findUniqueOrThrow({ where: { id: p.id } });
+      return { ref, payment };
+    });
+
+    const a = p.timesheet.assignment;
+    await this.events.notify(a.serviceRequest.userId, 'PAYMENT_REFUNDED', 'Refund issued',
+      `Rs ${amount} was refunded to you.`, { paymentId: p.id });
+    await this.events.notify(a.worker.userId, 'PAYMENT_REFUNDED', 'Payment refunded',
+      'A refund was issued on one of your jobs. Your payout was adjusted.', { paymentId: p.id });
+
+    return { ...payment, refundRef: ref };
   }
 }

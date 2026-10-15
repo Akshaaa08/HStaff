@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { PaymentsService } from './payments.service';
-import { PayDto } from '../common/dto';
+import { PayDto, RefundDto } from '../common/dto';
 
 @Controller('payments')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -14,6 +14,12 @@ export class PaymentsController {
   @Roles('USER')
   pay(@Req() req: any, @Body() body: PayDto) {
     return this.svc.pay(req.user.userId, body);
+  }
+
+  @Post(':id/refund')
+  @Roles('ADMIN')
+  refund(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: RefundDto) {
+    return this.svc.refund(req.user.userId, id, body);
   }
 
   @Get(':timesheetId')

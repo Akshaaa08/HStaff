@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { PrismaService } from './prisma.service';
@@ -23,6 +24,8 @@ import { EventsModule } from './events/events.module';
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     // 100 requests per minute per client
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    // enables the @Cron jobs (offer expiry)
+    ScheduleModule.forRoot(),
     AuthModule,
     WorkersModule,
     AdminModule,

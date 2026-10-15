@@ -264,6 +264,9 @@ model Payment {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   payout      Payout?
+    refundedAmount Int       @default(0)
+  refundReason   String?
+  refundedAt     DateTime?
 
   @@index([status])
 }
@@ -278,6 +281,7 @@ model Payout {
   status    PaymentStatus @default(PENDING)
   settledAt DateTime?
   createdAt DateTime      @default(now())
+    gatewayRef String?
 }
 
 model Rating {

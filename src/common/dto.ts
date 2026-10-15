@@ -168,3 +168,11 @@ export class SetAvailabilityDto {
   @Type(() => AvailabilitySlotDto)
   slots: AvailabilitySlotDto[];
 }
+export class RefundDto {
+  // leave out to refund everything that is left
+  @IsOptional() @IsInt() @Min(1)
+  amount?: number;
+
+  @IsString() @IsNotEmpty() @MaxLength(500)
+  reason: string;
+}

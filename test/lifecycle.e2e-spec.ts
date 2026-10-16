@@ -46,13 +46,21 @@ describe('H-Staff full lifecycle (e2e)', () => {
     };
     for (const k of Object.keys(PHONES)) {
       const u = await prisma.user.create({
-        data: { phone: PHONES[k], role: roles[k], phoneVerifiedAt: new Date() },
+        data: { phone: PHONES[k as keyof typeof PHONES], role: roles[k], phoneVerifiedAt: new Date() },
       });
       tok[k] = jwt.sign({ sub: u.id, role: u.role });
     }
   });
  
-  afterAll(async () => {
+    afterAll(async () => {
+    // Take this run's test worker out of future searches,
+    // so test workers don't pile up and crowd out the top 20.
+    if (workerProfileId) {
+      await prisma.workerProfile.update({
+        where: { id: workerProfileId },
+        data: { latitude: null, longitude: null },
+      });
+    }
     await app.close();
   });
  
@@ -70,7 +78,7 @@ describe('H-Staff full lifecycle (e2e)', () => {
     const put = await request(app.getHttpServer())
       .put('/workers/me').set(auth('worker'))
       .send({ experienceYears: 5, baseHourlyRate: 300, serviceRadiusKm: 10,
-              latitude: 18.5204, longitude: 73.8567, categoryIds: [1] })
+              latitude: 18.53, longitude: 73.85, categoryIds: [1] })
       .expect(200);
     workerProfileId = put.body.id;
     const sub = await request(app.getHttpServer())

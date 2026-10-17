@@ -1,0 +1,11 @@
+HStaff UI/UX Design Bundle
+
+Contents:
+- HStaff_UI_UX_Design_Specification.md: detailed design and implementation brief for the AI coding agent.
+- assets/HStaff_Logo.jpg: supplied HStaff logo image.
+- assets/*.jpeg: supplied HStaff current UI screenshots and visual reference screenshots.
+
+Instructions:
+1. Keep this folder together so all reference images remain available.
+2. Ask your AI coding agent to read the Markdown specification completely and inspect the assets before making changes.
+3. Preserve the existing React Native application architecture and working backend logic.

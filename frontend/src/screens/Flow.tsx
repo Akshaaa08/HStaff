@@ -16,6 +16,7 @@ import {
 import {BrandGradient, Chip, Eyebrow, FieldLabel, IconButton, Outline, Photo, Primary, Quiet, Subtle, TextArea, Txt, WrapChip} from '../components/ui';
 import LinearGradient from 'react-native-linear-gradient';
 import {Title} from './shared';
+import {t} from '../lib/translator';
 import type {C} from '../state/useHStaff';
 
 const Top = ({c, label}: {c: C; label: string}) => <ScreenTop title={label} onBack={c.back} />;
@@ -138,12 +139,15 @@ export function Location({c}: {c: C}) {
 }
 
 export function Professionals({c}: {c: C}) {
+  const lang = c.language;
   return (
     <>
-      <Top c={c} label="Choose your professional" /><Progress step={4} />
-      <Title heading="Good people. Great help." description={`${c.allProfessionals.length} verified professionals nearby for ${c.draft.service.toLowerCase()}.`} />
+      <Top c={c} label={t('Choose your professional', lang)} /><Progress step={4} />
+      <Title heading={t('Good people. Great help.', lang)} description={`${c.allProfessionals.length} ${t('verified professionals nearby', lang)} for ${c.draft.service.toLowerCase()}.`} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginVertical: 16}} contentContainerStyle={{gap: 7}}>
-        {['Recommended', 'Nearest', 'Top Rated', 'Price'].map(t => <Chip key={t} title={t} selected={c.sort === t} onPress={() => c.setSort(t)} />)}
+        {['Recommended', 'Nearest', 'Top Rated', 'Price'].map(item => (
+          <Chip key={item} title={t(item, lang)} selected={c.sort === item} onPress={() => c.setSort(item)} />
+        ))}
       </ScrollView>
       {c.loading ? (
         <View accessibilityLabel="Loading professionals">
@@ -331,20 +335,22 @@ export function Service({c}: {c: C}) {
 const elapsedParts = (e: number) => [Math.floor(e / 3600), Math.floor(e / 60) % 60, e % 60].map(n => String(n).padStart(2, '0')).join(':');
 
 export function Payment({c}: {c: C}) {
-  const {b, person} = c;
+  const {b, person, language} = c;
   const hrs = b?.hours ?? 1;
+  const pricing = priceFor(person.rate, hrs);
+
   return (
     <>
-      <Top c={c} label="Payment" />
-      <Eyebrow>A job well done</Eyebrow>
-      <Title heading="The finishing touch." description="Pay securely after your service is complete." />
+      <Top c={c} label={t('Payment', language)} />
+      <Eyebrow>{t('A job well done', language)}</Eyebrow>
+      <Title heading={t('The finishing touch.', language)} description={t('Pay securely after your service is complete.', language)} />
       <Summary><Txt w="bold" size={16}>{b?.service}</Txt><Subtle>{person.name}</Subtle><Subtle>{b?.id}</Subtle></Summary>
       <PriceBreakdown rate={person.rate} hours={hrs} />
-      <FieldLabel>Payment method</FieldLabel>
-      <Stack>{['UPI', 'Cards', 'Net Banking'].map(t => <Choice key={t} title={t} icon={t === 'UPI' ? <Zap size={20} color={colors.foreground} /> : <CreditCard size={20} color={colors.foreground} />} selected={c.payment === t} onPress={() => c.setPayment(t)} />)}</Stack>
-      <Primary title={c.loading ? 'Processing…' : `Pay ${money(priceFor(person.rate, hrs).total)}`} disabled={c.loading} icon={<LockKeyhole size={16} color="#fff" />} onPress={() => c.simulatedPayment()} />
-      <Subtle center style={{marginTop: 12}}>Prototype payment · No money will be charged</Subtle>
-      <Quiet center size={12} style={{marginTop: 16}} title="Try payment failure" onPress={() => c.simulatedPayment(true)} />
+      <FieldLabel>{t('Payment method', language)}</FieldLabel>
+      <Stack>{['UPI', 'Cards', 'Net Banking'].map(item => <Choice key={item} title={item} icon={item === 'UPI' ? <Zap size={20} color={colors.foreground} /> : <CreditCard size={20} color={colors.foreground} />} selected={c.payment === item} onPress={() => c.setPayment(item)} />)}</Stack>
+      <Primary title={c.loading ? t('Processing…', language) : `${t('Pay', language)} ${money(pricing.total)}`} disabled={c.loading} icon={<LockKeyhole size={16} color="#fff" />} onPress={() => c.simulatedPayment()} />
+      <Subtle center style={{marginTop: 12}}>Razorpay Test Mode · UPI / Cards / NetBanking · Worker: {money(pricing.charge)} + Platform fee: {money(pricing.fee)}</Subtle>
+      <Quiet center size={12} style={{marginTop: 16}} title="Test failure handling" onPress={() => c.simulatedPayment(true)} />
     </>
   );
 }

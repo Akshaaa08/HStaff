@@ -1,6 +1,6 @@
 import React, {type ReactNode} from 'react';
 import {Pressable, TextInput, View, useWindowDimensions} from 'react-native';
-import {ArrowRight, Bell, Check, Search} from 'lucide-react-native';
+import {ArrowRight, Bell, Check, Languages, Search} from 'lucide-react-native';
 import {money, priceFor, professionalFor, services, statusLabel, type Booking} from '../lib/domain';
 import {photos, serviceIcons} from '../lib/assets';
 import {colors, toneColor} from '../theme';
@@ -17,6 +17,9 @@ export function Header({c}: {c: C}) {
     <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 13, paddingHorizontal: 24, paddingBottom: 10}}>
       <HStaffLogo />
       <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+        <IconButton label="Language selection" onPress={() => c.setSheet('Language')}>
+          <Languages size={17} color={colors.foreground} />
+        </IconButton>
         <IconButton label="Notifications" onPress={() => c.go('notifications')}>
           <Bell size={16} color={colors.foreground} />
           <View style={{position: 'absolute', top: 11, right: 14, width: 5, height: 5, borderRadius: 3, backgroundColor: colors.pink}} />

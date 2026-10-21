@@ -101,8 +101,25 @@ export function SheetHost({c}: {c: C}) {
         : <EmptyState icon={<Star size={40} color={colors.mutedForeground} />} title="No reviews yet" description="Your reviews will appear after completed services." />;
       break;
     case 'Language':
-      body = (<View style={{gap: 12}}>{['English', 'हिन्दी', 'मराठी'].map(t => (
-        <Choice key={t} title={t} selected={t === 'English'} onPress={() => c.setNotice(t === 'English' ? 'English selected.' : 'Additional languages will be available in the native application.')} />))}</View>);
+      body = (
+        <View style={{gap: 10}}>
+          {(() => {
+            const {SUPPORTED_LANGUAGES} = require('../lib/translator');
+            return SUPPORTED_LANGUAGES.map((lang: any) => (
+              <Choice
+                key={lang.code}
+                title={`${lang.nativeName} (${lang.label})`}
+                selected={c.language === lang.code}
+                onPress={() => {
+                  c.setLanguage(lang.code);
+                  c.setNotice(`${lang.label} selected.`);
+                  c.closeSheet();
+                }}
+              />
+            ));
+          })()}
+        </View>
+      );
       break;
     case 'Help & Safety':
       body = (<><Subtle>Keep conversations on H-Staff. Only share the Start Code after arrival and the End Code when the work is complete.</Subtle>

@@ -138,10 +138,10 @@ export function PriceBreakdown({rate, hours}: {rate: number; hours: number}) {
   const p = priceFor(rate, hours);
   return (
     <Summary>
-      <DetailRow label="Professional charge" value={money(p.charge)} />
+      <DetailRow label="Worker fare (disbursed to worker)" value={money(p.charge)} />
       <Subtle>{hours} {hours === 1 ? 'hour' : 'hours'} × {money(rate)}/hr</Subtle>
-      <DetailRow label="H-Staff service fee" value={money(p.fee)} />
-      <DetailRow label="Total" value={money(p.total)} total />
+      <DetailRow label="Platform service fee" value={money(p.fee)} />
+      <DetailRow label="Total payable" value={money(p.total)} total />
     </Summary>
   );
 }

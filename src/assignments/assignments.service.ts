@@ -168,7 +168,9 @@ export class AssignmentsService {
     const minutes = (now.getTime() - startedAt.getTime()) / 60000;
     const verifiedHours = Math.max(MIN_BILLED_HOURS, Math.ceil(minutes / 15) * 0.25);
     const gross = Math.round(verifiedHours * a.agreedHourlyRate);
-    const fee = Math.round(verifiedHours * a.platformFee);
+    // Tiered platform fee: 50 for 1h, 100 for 2h, 200 for 3h, +100 for each additional hour
+    const roundedHours = Math.max(1, Math.round(verifiedHours));
+    const fee = roundedHours === 1 ? 50 : roundedHours === 2 ? 100 : 100 + (roundedHours - 2) * 100;
 
     const result = await this.prisma.$transaction([
       this.prisma.attendanceSession.update({

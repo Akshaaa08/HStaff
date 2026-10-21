@@ -29,7 +29,18 @@ const transitions:Record<BookingStatus,BookingStatus[]> = {
 };
 export function canTransition(from:BookingStatus,to:BookingStatus){return transitions[from].includes(to)}
 export function moveBooking(b:Booking,status:BookingStatus):Booking { if(!canTransition(b.status,status)) return b;return {...b,status,...(status==='IN_PROGRESS'?{startedAt:Date.now()}: {})} }
-export function priceFor(rate:number,hours:number){const charge=rate*hours;return {charge,fee:50,total:charge+50}}
+export function platformFeeFor(hours: number): number {
+  const h = Math.max(1, Math.round(hours || 1));
+  // Platform fee scales based on hours: 50 for 1 hr, 100 for 2, 200 for 3, etc.
+  if (h === 1) return 50;
+  if (h === 2) return 100;
+  return 100 + (h - 2) * 100; // 3 hrs -> 200, 4 hrs -> 300, etc.
+}
+export function priceFor(rate: number, hours: number) {
+  const charge = rate * hours;
+  const fee = platformFeeFor(hours);
+  return { charge, fee, total: charge + fee };
+}
 export const START_OTP='482713';export const END_OTP='724819';export const AUTH_OTP='123456';
 export function canTrack(s:BookingStatus){return s==='EN_ROUTE'||s==='ARRIVED'}
 export function visibleOtp(s:BookingStatus){return s==='ARRIVED'?START_OTP:s==='COMPLETED_PENDING_PAYMENT'?END_OTP:null}

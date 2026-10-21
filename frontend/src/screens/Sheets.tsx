@@ -21,7 +21,7 @@ function ReportBody({c}: {c: C}) {
       <Subtle>Tell us what went wrong. Your safety matters.</Subtle>
       <View style={{marginTop: 16}}><SelectField label="Issue type" value={type} onChange={setType} options={['Service quality', 'Safety concern', 'Professional not arrived', 'Payment issue']} /></View>
       <TextArea rows={3} accessibilityLabel="Issue details" placeholder="Describe the issue…" value={detail} onChangeText={setDetail} style={{marginTop: 12}} />
-      <Primary title="Submit report" icon={<ShieldCheck size={16} color="#fff" />} onPress={() => {c.transition('DISPUTED'); c.setSheet(null);}} />
+      <Primary title="Submit report" icon={<ShieldCheck size={16} color="#fff" />} onPress={() => {c.submitComplaint(type, detail); c.setSheet(null);}} />
     </>
   );
 }

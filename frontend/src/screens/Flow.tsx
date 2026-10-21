@@ -5,9 +5,8 @@ import {
   ArrowRight, CalendarDays, Check, CheckCircle2, Clock, CreditCard, HelpCircle, LockKeyhole, MapPin, MessageCircle, Minus, Navigation, Plus, Receipt, Send, Settings, ShieldCheck, Star, Zap,
 } from 'lucide-react-native';
 import {
-  END_OTP, START_OTP, canFallback, canTrack, clock, money, priceFor, professionalFor, statusLabel, type Professional,
+  END_OTP, START_OTP, canFallback, canTrack, clock, money, priceFor, statusLabel, type Professional,
 } from '../lib/domain';
-import {professionals} from '../lib/domain';
 import {photos} from '../lib/assets';
 import {brandGradient, colors} from '../theme';
 import {Pulse} from '../components/motion';
@@ -142,7 +141,7 @@ export function Professionals({c}: {c: C}) {
   return (
     <>
       <Top c={c} label="Choose your professional" /><Progress step={4} />
-      <Title heading="Good people. Great help." description={`${professionals.length} verified professionals nearby for ${c.draft.service.toLowerCase()}.`} />
+      <Title heading="Good people. Great help." description={`${c.allProfessionals.length} verified professionals nearby for ${c.draft.service.toLowerCase()}.`} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginVertical: 16}} contentContainerStyle={{gap: 7}}>
         {['Recommended', 'Nearest', 'Top Rated', 'Price'].map(t => <Chip key={t} title={t} selected={c.sort === t} onPress={() => c.setSort(t)} />)}
       </ScrollView>
@@ -157,7 +156,7 @@ export function Professionals({c}: {c: C}) {
 }
 
 export function ProfessionalProfile({c}: {c: C}) {
-  const p: Professional = professionalFor(c.selected);
+  const p: Professional = c.allProfessionals.find(w => w.id === c.selected) ?? c.person;
   const Review = ({who, text}: {who: string; text: string}) => (
     <View style={{paddingVertical: 16, borderBottomWidth: 1, borderColor: colors.border}}>
       <Txt size={12} w="bold">{who}</Txt>
@@ -197,7 +196,7 @@ export function ProfessionalProfile({c}: {c: C}) {
 }
 
 export function BookingSummary({c}: {c: C}) {
-  const p = professionalFor(c.selected);
+  const p = c.allProfessionals.find(w => w.id === c.selected) ?? c.person;
   const {draft} = c;
   return (
     <>

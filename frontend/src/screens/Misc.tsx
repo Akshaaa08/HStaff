@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Pressable, TextInput, View, useWindowDimensions} from 'react-native';
 import {pick, types, isErrorWithCode, errorCodes} from '@react-native-documents/picker';
 import {ArrowRight, Check, CheckCircle2, FileUp, Navigation, Phone, ShieldCheck} from 'lucide-react-native';
@@ -18,17 +18,44 @@ const Top = ({c, label}: {c: C; label: string}) => <ScreenTop title={label} onBa
 
 export function Notifications({c}: {c: C}) {
   const {b, person} = c;
-  const rows = b ? [
+  const [apiNotifs, setApiNotifs] = useState<any[]>([]);
+  const [fetched, setFetched] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const {api} = await import('../lib/api');
+        const list = await api.notifications.list();
+        if (alive && Array.isArray(list)) setApiNotifs(list);
+      } catch { /* use local fallback */ }
+      if (alive) setFetched(true);
+    })();
+    return () => {alive = false;};
+  }, []);
+
+  /* Backend notifications mapped to display rows */
+  const apiRows = apiNotifs.map(n => ({
+    icon: CheckCircle2,
+    text: n.body ?? n.message ?? 'Notification',
+    time: n.createdAt ? new Date(n.createdAt).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) : 'Just now',
+  }));
+
+  /* Fallback rows from local booking state */
+  const localRows = b ? [
     {icon: CheckCircle2, text: ['REQUESTED', 'DECLINED', 'EXPIRED'].includes(b.status) ? `Your request to ${person.name} was sent.` : `${person.name} accepted your request.`, time: 'Just now'},
     {icon: Navigation, text: canTrack(b.status) ? `${person.name.split(' ')[0]} is ${b.status === 'ARRIVED' ? 'at your location' : 'on the way'}.` : 'Your booking details are ready.', time: 'Booking'},
     {icon: ShieldCheck, text: visibleOtp(b.status) ? 'Your service verification code is ready.' : 'Your service uses separate arrival and completion codes.', time: 'Safety'},
   ] : [];
+
+  const rows = apiRows.length > 0 ? apiRows : localRows;
+
   return (
     <>
       <Top c={c} label="Notifications" />
-      <Title heading="You’re in the loop." />
+      <Title heading="You're in the loop." />
       <SectionHeading title="Booking updates" />
-      {b ? rows.map((n, i) => (
+      {rows.length > 0 ? rows.map((n, i) => (
         <View key={i} style={{flexDirection: 'row', gap: 12, paddingVertical: 18, borderBottomWidth: 1, borderColor: colors.border}}>
           <View style={{width: 36, height: 36, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: i === 0 ? colors.peach : colors.muted}}><n.icon size={20} color={colors.foreground} /></View>
           <View style={{flex: 1}}>
@@ -106,6 +133,7 @@ export function MobileOtp({c}: {c: C}) {
 
 export function Setup({c}: {c: C}) {
   const [doc, setDoc] = useState('');
+  const [experience, setExperience] = useState('8');
   const pickDoc = async () => {
     try {const [f] = await pick({type: [types.images, types.pdf]}); setDoc(f?.name ?? 'Document selected');}
     catch (e) {if (!isErrorWithCode(e) || e.code !== errorCodes.OPERATION_CANCELED) c.setError('Could not open the file picker.');}
@@ -120,7 +148,7 @@ export function Setup({c}: {c: C}) {
       <SelectField label="Professional category" value={c.setupSkill} options={services.map(s => s.name)} onChange={c.setSetupSkill} />
       <View style={{flexDirection: 'row', gap: 10}}>
         <View style={{flex: 1}}><FieldLabel>Hourly rate (₹)</FieldLabel><Field accessibilityLabel="Hourly rate" keyboardType="number-pad" value={c.setupRate} onChangeText={v => c.setSetupRate(v.replace(/\D/g, ''))} /></View>
-        <View style={{flex: 1}}><FieldLabel>Experience (years)</FieldLabel><Field accessibilityLabel="Years experience" keyboardType="number-pad" defaultValue="8" /></View>
+        <View style={{flex: 1}}><FieldLabel>Experience (years)</FieldLabel><Field accessibilityLabel="Years experience" keyboardType="number-pad" value={experience} onChangeText={v => setExperience(v.replace(/\D/g, ''))} /></View>
       </View>
       <FieldLabel>Tools & equipment</FieldLabel>
       <TextArea rows={2} accessibilityLabel="Tools and equipment" placeholder="Tell customers what you bring" defaultValue="Cleaning kit, brushes and supplies" />
@@ -131,8 +159,7 @@ export function Setup({c}: {c: C}) {
       </Pressable>
       <Subtle style={{marginTop: 8}}>Demo verification only. Please do not upload private documents.</Subtle>
       <Primary title="Complete demo setup" icon={<Check size={16} color="#fff" />} onPress={() => {
-        if (!c.setupName.trim() || Number(c.setupRate) <= 0) {c.setError('Add your name and a valid hourly rate.'); return;}
-        c.patch({setup: true, role: 'professional'}); c.navigateTab('Home');
+        c.completeSetup(c.setupName, c.setupSkill, c.setupRate, experience);
       }} />
     </>
   );

@@ -3,7 +3,7 @@ import {Pressable, View} from 'react-native';
 import {
   ArrowRight, ArrowUpRight, Bell, BriefcaseBusiness, Brush, CalendarDays, ChevronDown, Clock, CreditCard, Flower2, HelpCircle, Languages, LogOut, MapPin, Search, ShieldCheck, Star, User,
 } from 'lucide-react-native';
-import {money, professionals} from '../lib/domain';
+import {money} from '../lib/domain';
 import {photos} from '../lib/assets';
 import {colors} from '../theme';
 import {Blob} from '../components/motion';
@@ -60,7 +60,7 @@ export function CustomerHome({c}: {c: C}) {
         <SectionHeading title="Popular services" action="View all" onAction={() => c.navigateTab('Discover')} />
         <ServiceGrid c={c} />
         <SectionHeading title="Good people, nearby" action="See all" onAction={() => {c.setDraft(makeDraft()); c.browse();}} />
-        <ProfessionalCard person={professionals[0]} service="Cleaning specialist" onPress={() => {c.setSelected('sunita'); c.setDraft(makeDraft()); c.go('professional-profile');}} />
+        <ProfessionalCard person={c.allProfessionals[0]} service="Cleaning specialist" onPress={() => {c.setSelected(c.allProfessionals[0].id); c.setDraft(makeDraft()); c.go('professional-profile');}} />
         <View style={{flexDirection: 'row', gap: 6, justifyContent: 'center', alignItems: 'center', marginTop: 25}}>
           <ShieldCheck size={14} color={colors.mutedForeground} />
           <Txt size={10} color={colors.mutedForeground}>Verified people. Transparent prices. Peace of mind.</Txt>
@@ -217,7 +217,7 @@ export function Profile({c}: {c: C}) {
           {items.map(([Icon, label]) => <MenuRow key={label} icon={<Icon size={19} color={colors.foreground} />} title={label} onPress={() => act(label)} />)}
           <MenuRow icon={<BriefcaseBusiness size={19} color={colors.foreground} />} title={`Switch to ${isPro ? 'Customer' : 'Professional'}`} onPress={c.switchRole} />
           <MenuRow icon={<LogOut size={19} color={colors.foreground} />} title={session.authenticated ? 'Logout' : 'Welcome & sign in'}
-            onPress={() => {if (session.authenticated) c.patch({authenticated: false, phone: ''}); c.go('welcome');}} />
+            onPress={() => {if (session.authenticated) {c.logout();} else {c.go('welcome');}}} />
         </View>
         <Subtle center style={{marginTop: 24}}>H-Staff · Made for everyday life</Subtle>
       </Page>

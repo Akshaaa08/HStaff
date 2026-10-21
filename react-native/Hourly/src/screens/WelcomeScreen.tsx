@@ -5,6 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../theme/colors';
 import { GradientButton } from '../components/common/GradientButton';
 import { OutlinedButton } from '../components/common/OutlinedButton';
+import { HStaffLogo } from '../components/common/HStaffLogo';
+import { FooterSections } from '../components/common/FooterSections';
 
 interface WelcomeScreenProps {
   onGetStarted: (role: 'client' | 'worker') => void;
@@ -16,10 +18,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted, onLo
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.logoRow}>
-          <Text style={styles.logoH}>H</Text>
-          <Text style={styles.logoText}>-Staff</Text>
-        </View>
+        <HStaffLogo size="medium" />
         <TouchableOpacity activeOpacity={0.7} onPress={onLogin} style={styles.loginHeaderBtn}>
           <Text style={styles.loginHeaderText}>Log in</Text>
         </TouchableOpacity>
@@ -29,7 +28,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted, onLo
       <View style={styles.pillContainer}>
         <View style={styles.verifiedPill}>
           <Ionicons name="shield-checkmark" size={14} color={Colors.pink} />
-          <Text style={styles.verifiedPillText}>Verified help across Maharashtra</Text>
+          <Text style={styles.verifiedPillText}>Trusted local help, close to home</Text>
         </View>
       </View>
 
@@ -41,7 +40,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted, onLo
       </View>
 
       <Text style={styles.tagline}>
-        Book trusted local professionals in minutes — or earn on your own terms.
+        Book trusted local professionals for everyday tasks, repairs, and home services.
       </Text>
 
       {/* Platform Features Showcase */}
@@ -57,8 +56,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted, onLo
               <Ionicons name="navigate-circle" size={24} color={Colors.coral} />
             </View>
             <View style={styles.featureTextCol}>
-              <Text style={styles.featureTitle}>Live GPS Matching</Text>
-              <Text style={styles.featureDesc}>Verified professionals on map with real distance & live route</Text>
+              <Text style={styles.featureTitle}>Location-Based Matching</Text>
+              <Text style={styles.featureDesc}>Verified professionals nearby with transparent arrival details</Text>
             </View>
           </View>
 
@@ -66,11 +65,11 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted, onLo
 
           <View style={styles.featureItem}>
             <View style={styles.featureIconWrap}>
-              <Ionicons name="shield-checkmark" size={24} color="#00875A" />
+              <Ionicons name="shield-checkmark" size={24} color={Colors.green} />
             </View>
             <View style={styles.featureTextCol}>
-              <Text style={styles.featureTitle}>100% ID Verified Staff</Text>
-              <Text style={styles.featureDesc}>Background-checked helpers ready at your doorstep</Text>
+              <Text style={styles.featureTitle}>Verified Professional Staff</Text>
+              <Text style={styles.featureDesc}>Admin-vetted helpers with secure OTP check-in protection</Text>
             </View>
           </View>
 
@@ -81,8 +80,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted, onLo
               <Ionicons name="pricetag" size={24} color={Colors.pink} />
             </View>
             <View style={styles.featureTextCol}>
-              <Text style={styles.featureTitle}>Hourly Upfront Pricing</Text>
-              <Text style={styles.featureDesc}>Pay strictly for the hours you need · Zero hidden fees</Text>
+              <Text style={styles.featureTitle}>Transparent Hourly Rates</Text>
+              <Text style={styles.featureDesc}>Clear pricing in INR · Upfront material charges · No surprises</Text>
             </View>
           </View>
         </LinearGradient>
@@ -97,7 +96,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted, onLo
         />
 
         <OutlinedButton
-          text="Sign up to work as a helper"
+          text="Work as a helper"
           onPress={() => onGetStarted('worker')}
           style={styles.workerButton}
         />
@@ -109,9 +108,16 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted, onLo
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Footer Informational Sections */}
+      <FooterSections
+        onServicePress={() => onGetStarted('client')}
+        onWorkerPress={() => onGetStarted('worker')}
+      />
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

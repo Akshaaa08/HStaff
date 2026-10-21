@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
+import { HStaffLogo } from './HStaffLogo';
 
 interface AppHeaderProps {
   name: string;
@@ -25,22 +26,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       {/* Brand & City Row */}
       <View style={styles.leftCol}>
         <View style={styles.logoRow}>
-          <Text style={styles.logoH}>H</Text>
-          <Text style={styles.logoText}>-Staff</Text>
+          <HStaffLogo size={100} />
           {apiConnected && <View style={styles.onlineDot} />}
         </View>
 
         <TouchableOpacity activeOpacity={0.75} onPress={onCityPress} style={styles.cityPill}>
           <Ionicons name="location-sharp" size={13} color={Colors.coral} />
           <Text style={styles.cityText}>{city || 'Pune'}</Text>
-          <Ionicons name="chevron-down" size={13} color={Colors.mutedFg} />
+          <Ionicons name="chevron-down" size={12} color={Colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
       {/* Action Icons */}
       <View style={styles.actionsRow}>
         <TouchableOpacity activeOpacity={0.75} onPress={onNotifications} style={styles.iconButton}>
-          <Ionicons name="notifications-outline" size={20} color={Colors.foreground} />
+          <Ionicons name="notifications-outline" size={19} color={Colors.navy} />
           <View style={styles.notifBadge} />
         </TouchableOpacity>
 
@@ -57,8 +57,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    marginBottom: 6,
+    paddingVertical: 10,
+    marginBottom: 4,
   },
   leftCol: {
     gap: 4,
@@ -66,39 +66,30 @@ const styles = StyleSheet.create({
   logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-  },
-  logoH: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: Colors.coral,
-  },
-  logoText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.foreground,
+    gap: 6,
   },
   onlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.success,
-    marginLeft: 6,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: Colors.green,
   },
   cityPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.mutedBg,
+    backgroundColor: '#F8F8F6',
+    borderWidth: 1,
+    borderColor: '#E8E5E2',
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 4,
     borderRadius: 14,
     alignSelf: 'flex-start',
   },
   cityText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.foreground,
+    color: Colors.navy,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -109,15 +100,17 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: Colors.mutedBg,
+    backgroundColor: '#F8F8F6',
+    borderWidth: 1,
+    borderColor: '#E8E5E2',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   notifBadge: {
     position: 'absolute',
-    top: 9,
-    right: 9,
+    top: 8,
+    right: 8,
     width: 7,
     height: 7,
     borderRadius: 3.5,
@@ -127,15 +120,16 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: Colors.peach,
+    backgroundColor: '#FFF0EA',
+    borderWidth: 1.5,
+    borderColor: '#FFD3C2',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
   },
   avatarText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
-    color: '#8A4810',
+    color: Colors.navy,
   },
 });
+

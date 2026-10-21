@@ -148,7 +148,7 @@ export const WorkerDashboardScreen: React.FC<WorkerDashboardScreenProps> = ({
         />
       }
     >
-      {/* Worker Header Card */}
+      {/* Worker Header Card with HStaff Brand */}
       <View style={styles.headerCard}>
         <View style={styles.headerTop}>
           <View style={styles.avatarWrapper}>
@@ -159,6 +159,7 @@ export const WorkerDashboardScreen: React.FC<WorkerDashboardScreenProps> = ({
           <View style={styles.headerInfo}>
             <View style={styles.badgeRow}>
               <View style={styles.roleTag}>
+                <Ionicons name="shield-checkmark" size={11} color={Colors.green} />
                 <Text style={styles.roleTagText}>VERIFIED PRO</Text>
               </View>
               <Text style={styles.cityTag}>📍 {session.city}</Text>
@@ -174,7 +175,7 @@ export const WorkerDashboardScreen: React.FC<WorkerDashboardScreenProps> = ({
             onPress={onNotifications}
             activeOpacity={0.7}
           >
-            <Ionicons name="notifications-outline" size={22} color={Colors.foreground} />
+            <Ionicons name="notifications-outline" size={20} color={Colors.navy} />
             {unreadNotifications > 0 && (
               <View style={styles.notifBadge}>
                 <Text style={styles.notifBadgeText}>{unreadNotifications}</Text>
@@ -189,10 +190,10 @@ export const WorkerDashboardScreen: React.FC<WorkerDashboardScreenProps> = ({
             <Ionicons
               name={isAvailable ? 'radio-button-on' : 'radio-button-off'}
               size={18}
-              color={isAvailable ? Colors.success : Colors.mutedFg}
+              color={isAvailable ? Colors.green : Colors.textSecondary}
             />
             <Text style={styles.availText}>
-              {isAvailable ? 'Available & Accepting Requests' : 'Currently Offline / Busy'}
+              {isAvailable ? 'Online · Accepting Requests' : 'Currently Offline'}
             </Text>
           </View>
           <TouchableOpacity
@@ -200,31 +201,44 @@ export const WorkerDashboardScreen: React.FC<WorkerDashboardScreenProps> = ({
             activeOpacity={0.8}
             onPress={() => setIsAvailable((prev) => !prev)}
           >
-            <Text style={styles.toggleBtnText}>{isAvailable ? 'Go Offline' : 'Go Online'}</Text>
+            <Text style={[styles.toggleBtnText, isAvailable ? styles.toggleTextOn : styles.toggleTextOff]}>
+              {isAvailable ? 'Go Offline' : 'Go Online'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Earnings & Stats Bar */}
-      <View style={styles.statsGrid}>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{formatInr(totalEarnings)}</Text>
-          <Text style={styles.statLabel}>Total Earned</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{completedJobs.length}</Text>
-          <Text style={styles.statLabel}>Jobs Done</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statBox}>
-          <View style={styles.ratingVal}>
-            <Ionicons name="shield-checkmark" size={14} color={Colors.success} />
-            <Text style={styles.statNumber}>100%</Text>
+      {/* Main Earnings Card with Soft Brand Gradient per Section 7 */}
+      <View style={styles.earningsHeroCard}>
+        <View style={styles.earningsHeroTop}>
+          <View>
+            <Text style={styles.earningsHeroLabel}>TOTAL EARNINGS</Text>
+            <Text style={styles.earningsHeroVal}>{formatInr(totalEarnings)}</Text>
           </View>
-          <Text style={styles.statLabel}>Verified Pro</Text>
+          <View style={styles.payoutBadge}>
+            <Ionicons name="wallet-outline" size={14} color={Colors.coral} />
+            <Text style={styles.payoutBadgeText}>Daily Payouts</Text>
+          </View>
+        </View>
+
+        <View style={styles.earningsHeroDivider} />
+
+        <View style={styles.earningsHeroSubGrid}>
+          <View style={styles.earningsSubCol}>
+            <Text style={styles.earningsSubVal}>{completedJobs.length}</Text>
+            <Text style={styles.earningsSubLabel}>Completed Jobs</Text>
+          </View>
+          <View style={styles.earningsSubCol}>
+            <Text style={styles.earningsSubVal}>4.9 ★</Text>
+            <Text style={styles.earningsSubLabel}>Worker Rating</Text>
+          </View>
+          <View style={styles.earningsSubCol}>
+            <Text style={styles.earningsSubVal}>100%</Text>
+            <Text style={styles.earningsSubLabel}>On-Time Arrival</Text>
+          </View>
         </View>
       </View>
+
 
       {/* ── Active Ongoing Job Card (if any) ── */}
       {activeJob && (
@@ -672,51 +686,92 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   toggleOn: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#E6F4F0',
   },
   toggleOff: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F8F8F6',
   },
   toggleBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.foreground,
   },
-  statsGrid: {
-    flexDirection: 'row',
+  toggleTextOn: {
+    color: Colors.green,
+  },
+  toggleTextOff: {
+    color: Colors.textSecondary,
+  },
+  earningsHeroCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: 22,
+    padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
+    borderColor: '#E8E5E2',
+    shadowColor: '#101426',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
+  earningsHeroTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  statNumber: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: Colors.foreground,
-  },
-  statLabel: {
+  earningsHeroLabel: {
     fontSize: 11,
-    color: Colors.mutedFg,
-    marginTop: 2,
-    fontWeight: '600',
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: Colors.textSecondary,
   },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: Colors.border,
+  earningsHeroVal: {
+    fontSize: 30,
+    fontWeight: '900',
+    color: Colors.navy,
+    marginTop: 4,
   },
-  ratingVal: {
+  payoutBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: '#FFF0EA',
+    borderWidth: 1,
+    borderColor: '#FFD3C2',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
+  payoutBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.coral,
+  },
+  earningsHeroDivider: {
+    height: 1,
+    backgroundColor: '#E8E5E2',
+    marginVertical: 14,
+  },
+  earningsHeroSubGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  earningsSubCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  earningsSubVal: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.navy,
+  },
+  earningsSubLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+
   activeJobContainer: {
     backgroundColor: '#FFF8F5',
     borderRadius: 20,

@@ -65,9 +65,14 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderColor: Colors.border,
-    paddingBottom: 16,
+    borderColor: '#E8E5E2',
+    paddingBottom: 14,
     paddingTop: 8,
+    shadowColor: '#101426',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 4,
   },
   inner: {
     flexDirection: 'row',
@@ -96,11 +101,12 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.mutedFg,
+    color: '#737583',
     marginTop: 3,
   },
   tabLabelActive: {
-    color: Colors.coral,
-    fontWeight: '700',
+    color: Colors.pink,
+    fontWeight: '800',
   },
 });
+

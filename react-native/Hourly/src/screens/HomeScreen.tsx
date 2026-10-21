@@ -6,17 +6,18 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Image,
   Modal,
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { AppHeader } from '../components/common/AppHeader';
 import { StatusChip } from '../components/common/StatusChip';
 import { ProfessionalCard } from '../components/common/ProfessionalCard';
-import { ServiceCategory, ServiceTone, formatInr, hstaffCities, priceFor, professionalFor, isPastStatus } from '../types';
+import { FooterSections } from '../components/common/FooterSections';
+import { ServiceTone, hstaffCities, professionalFor, isPastStatus } from '../types';
 
 interface HomeScreenProps {
   onServiceSelected: (service: string) => void;
@@ -35,10 +36,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onDiscoverClicked,
   onProfessionalClicked,
 }) => {
-  const { session, draft, selectService, filteredServices, sortedProfessionals, setCity, loadWorkers } = useApp();
+  const { session, selectService, filteredServices, sortedProfessionals, setCity, loadWorkers } = useApp();
   const [search, setSearch] = useState('');
   const [showCityModal, setShowCityModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -51,23 +53,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   const toneToBg = (tone: ServiceTone) => {
     switch (tone) {
-      case 'PEACH': return Colors.peach;
-      case 'MINT': return Colors.mint;
-      case 'PINK': return Colors.softPink;
-      case 'LAVENDER': return Colors.lavender;
-      case 'YELLOW': return Colors.yellow;
-      default: return Colors.mutedBg;
+      case 'PEACH': return '#FFF3EC';
+      case 'MINT': return '#EBF9F3';
+      case 'PINK': return '#FDF0F5';
+      case 'LAVENDER': return '#F3F0FA';
+      case 'YELLOW': return '#FFF9E6';
+      default: return '#F8F8F6';
     }
   };
 
   const toneToIconColor = (tone: ServiceTone) => {
     switch (tone) {
-      case 'PEACH': return '#9A4C1A';
-      case 'MINT': return '#1C6944';
+      case 'PEACH': return Colors.coral;
+      case 'MINT': return Colors.green;
       case 'PINK': return Colors.pink;
-      case 'LAVENDER': return '#5F4BB6';
-      case 'YELLOW': return '#8A6D0B';
-      default: return Colors.foreground;
+      case 'LAVENDER': return '#6A5ACD';
+      case 'YELLOW': return '#D9822B';
+      default: return Colors.navy;
     }
   };
 
@@ -86,7 +88,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }
   };
 
-  const displayedCategories = filteredServices.slice(0, 8);
+  // Filter services by search text
+  const searchResults = search.trim()
+    ? filteredServices.filter((s) =>
+        s.name.toLowerCase().includes(search.toLowerCase()) ||
+        s.description.toLowerCase().includes(search.toLowerCase())
+      )
+    : filteredServices.slice(0, 8);
+
+  const faqs = [
+    {
+      q: 'How does hourly pricing work?',
+      a: 'You pay strictly for the actual hours worked based on transparent base rates starting from ₹180/hr. No surprise surcharges.',
+    },
+    {
+      q: 'Are the professionals verified?',
+      a: 'Yes, every helper passes identity verification and background vetting before taking any jobs in Maharashtra.',
+    },
+    {
+      q: 'What is the start OTP for?',
+      a: 'The 6-digit start code protects you. Share it only when your professional arrives at your doorstep to start the timer.',
+    },
+  ];
 
   return (
     <View style={styles.screen}>
@@ -112,7 +135,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           onCityPress={() => setShowCityModal(true)}
         />
 
-        {/* Active Booking Banner */}
+        {/* Active Booking Live Banner */}
         {activeBooking && !isPastStatus(activeBooking.status) && (
           <TouchableOpacity
             activeOpacity={0.88}
@@ -134,48 +157,62 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
             <View style={styles.activeBookingBottom}>
               <Text style={styles.activeBookingEta}>
-                Tap to track live status & OTP codes →
+                Tap to view live OTP code & tracker →
               </Text>
             </View>
           </TouchableOpacity>
         )}
 
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <Text style={styles.heroSubtitle}>HELP WHEN YOU NEED IT</Text>
+        {/* Hero Section with Beautiful Coral-Pink Soft Gradient */}
+        <LinearGradient
+          colors={Colors.warmHeroGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroBadgeRow}>
+            <View style={styles.eyebrowBadge}>
+              <Ionicons name="sparkles" size={12} color={Colors.pink} />
+              <Text style={styles.heroSubtitle}>HELP WHEN YOU NEED IT</Text>
+            </View>
+          </View>
+
           <Text style={styles.heroTitle}>Who do you need today?</Text>
           <Text style={styles.heroDescription}>
-            Vetted hourly domestic & local trades help delivered to your doorstep in Pune & Maharashtra.
+            Vetted hourly domestic and local-trade help, delivered to your doorstep.
           </Text>
-        </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={Colors.mutedFg} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search home cleaners, cooks, electricians..."
-            placeholderTextColor={Colors.mutedFg}
-            style={styles.searchInput}
-          />
-          {search ? (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color={Colors.mutedFg} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
+          {/* Search Bar inside Hero */}
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={18} color={Colors.textSecondary} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search cleaners, cooks, electricians..."
+              placeholderTextColor={Colors.textSecondary}
+              style={styles.searchInput}
+            />
+            {search ? (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <Ionicons name="close-circle" size={18} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </LinearGradient>
 
-        {/* Categories Section */}
+        {/* Popular Services Section */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Popular Services</Text>
+          <View>
+            <Text style={styles.sectionTitle}>Popular services</Text>
+            <Text style={styles.sectionMeta}>Transparent hourly rates</Text>
+          </View>
           <TouchableOpacity activeOpacity={0.7} onPress={onDiscoverClicked}>
             <Text style={styles.seeAllText}>See all 15 →</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.grid}>
-          {displayedCategories.map((service) => (
+          {searchResults.map((service) => (
             <TouchableOpacity
               key={service.name}
               activeOpacity={0.8}
@@ -195,33 +232,93 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <Text numberOfLines={1} style={styles.categoryName}>
                 {service.name}
               </Text>
+              <Text style={styles.categoryRate}>From ₹{service.pricePerHour}/hr</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Guarantee Banner */}
-        <View style={styles.guaranteeBanner}>
-          <View style={styles.guaranteeIcon}>
-            <Ionicons name="shield-checkmark" size={24} color={Colors.coral} />
+        {/* The HStaff Promise / Trust Panel */}
+        <View style={styles.promiseCard}>
+          <View style={styles.promiseHeader}>
+            <View style={styles.promiseIconBox}>
+              <Ionicons name="shield-checkmark" size={22} color={Colors.green} />
+            </View>
+            <View style={styles.promiseHeaderText}>
+              <Text style={styles.promiseTitle}>The HStaff Promise</Text>
+              <Text style={styles.promiseSubtitle}>Safe, vetted, transparent home services</Text>
+            </View>
           </View>
-          <View style={styles.guaranteeText}>
-            <Text style={styles.guaranteeTitle}>The HStaff Promise</Text>
-            <Text style={styles.guaranteeDesc}>
-              Aadhaar-verified helpers, transparent hourly rates in INR, and OTP check-in protection.
-            </Text>
+
+          <View style={styles.promiseGrid}>
+            <View style={styles.promiseItem}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.coral} />
+              <Text style={styles.promiseItemText}>Transparent hourly rates in INR</Text>
+            </View>
+            <View style={styles.promiseItem}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.coral} />
+              <Text style={styles.promiseItemText}>Verified professional staff</Text>
+            </View>
+            <View style={styles.promiseItem}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.coral} />
+              <Text style={styles.promiseItemText}>Safe Start OTP attendance verification</Text>
+            </View>
+            <View style={styles.promiseItem}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.coral} />
+              <Text style={styles.promiseItemText}>Platform booking assistance & care</Text>
+            </View>
           </View>
         </View>
 
-        {/* Recommended Professionals */}
+        {/* Book in 3 Easy Steps */}
+        <View style={styles.stepsCard}>
+          <Text style={styles.stepsHeading}>Book in 3 simple steps</Text>
+          <View style={styles.stepRow}>
+            <View style={styles.stepBadge}>
+              <Text style={styles.stepNum}>1</Text>
+            </View>
+            <View style={styles.stepTextCol}>
+              <Text style={styles.stepTitle}>Choose a service</Text>
+              <Text style={styles.stepDesc}>Select from 15 domestic and trade categories.</Text>
+            </View>
+          </View>
+
+          <View style={styles.stepDivider} />
+
+          <View style={styles.stepRow}>
+            <View style={styles.stepBadge}>
+              <Text style={styles.stepNum}>2</Text>
+            </View>
+            <View style={styles.stepTextCol}>
+              <Text style={styles.stepTitle}>Set time & materials</Text>
+              <Text style={styles.stepDesc}>Book instantly or schedule later. Clear supply pricing.</Text>
+            </View>
+          </View>
+
+          <View style={styles.stepDivider} />
+
+          <View style={styles.stepRow}>
+            <View style={styles.stepBadge}>
+              <Text style={styles.stepNum}>3</Text>
+            </View>
+            <View style={styles.stepTextCol}>
+              <Text style={styles.stepTitle}>OTP check-in & relax</Text>
+              <Text style={styles.stepDesc}>Share your start code when the helper arrives.</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Recommended Top Rated Nearby */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Top Rated Nearby</Text>
-          <Text style={styles.sectionSub}>
-            {sortedProfessionals.length > 0 &&
-            sortedProfessionals[0].city &&
-            sortedProfessionals[0].city.toLowerCase() !== session.city.toLowerCase()
-              ? `Verified staff in Maharashtra`
-              : `Available in ${session.city}`}
-          </Text>
+          <View>
+            <Text style={styles.sectionTitle}>Popular near you</Text>
+            <Text style={styles.sectionMeta}>
+              {sortedProfessionals.length > 0 &&
+              sortedProfessionals[0].city &&
+              sortedProfessionals[0].city.toLowerCase() !== session.city.toLowerCase()
+                ? `Verified professionals in Maharashtra`
+                : `Available right now in ${session.city}`}
+            </Text>
+          </View>
         </View>
 
         {sortedProfessionals.length > 0 ? (
@@ -234,13 +331,49 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           ))
         ) : (
           <View style={styles.emptyWorkersCard}>
-            <Ionicons name="people-outline" size={32} color={Colors.mutedFg} />
+            <Ionicons name="people-outline" size={32} color={Colors.textSecondary} />
             <Text style={styles.emptyWorkersTitle}>No professionals registered yet</Text>
             <Text style={styles.emptyWorkersSub}>
               Be the first to join as a verified professional or check back shortly!
             </Text>
           </View>
         )}
+
+        {/* Compact FAQs Section */}
+        <View style={styles.faqCard}>
+          <Text style={styles.faqHeader}>Frequently asked questions</Text>
+          {faqs.map((faq, idx) => {
+            const isExpanded = expandedFaq === idx;
+            return (
+              <TouchableOpacity
+                key={idx}
+                activeOpacity={0.8}
+                onPress={() => setExpandedFaq(isExpanded ? null : idx)}
+                style={styles.faqItem}
+              >
+                <View style={styles.faqQuestionRow}>
+                  <Text style={styles.faqQuestionText}>{faq.q}</Text>
+                  <Ionicons
+                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color={Colors.navy}
+                  />
+                </View>
+                {isExpanded && <Text style={styles.faqAnswerText}>{faq.a}</Text>}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Structured Footer */}
+        <FooterSections
+          onServicePress={(cat) => {
+            selectService(cat);
+            onServiceSelected(cat);
+          }}
+          onWorkerPress={onProfileClicked}
+          onHelpPress={onNotificationsClicked}
+        />
 
         <View style={{ height: 24 }} />
       </ScrollView>
@@ -250,9 +383,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Choose Launch City</Text>
+              <Text style={styles.modalTitle}>Choose Service City</Text>
               <TouchableOpacity onPress={() => setShowCityModal(false)}>
-                <Ionicons name="close" size={24} color={Colors.foreground} />
+                <Ionicons name="close" size={24} color={Colors.navy} />
               </TouchableOpacity>
             </View>
 
@@ -297,12 +430,12 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   activeBookingCard: {
-    backgroundColor: '#FFF5F3',
+    backgroundColor: '#FFF8F3',
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: Colors.coral,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   activeBookingTop: {
     flexDirection: 'row',
@@ -321,146 +454,312 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activeBookingTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: Colors.foreground,
+    color: Colors.navy,
   },
   activeBookingSub: {
     fontSize: 12,
-    color: Colors.mutedFg,
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   activeBookingBottom: {
     marginTop: 10,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 156, 122, 0.3)',
+    borderTopColor: 'rgba(255, 154, 120, 0.25)',
   },
   activeBookingEta: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: Colors.pink,
   },
-  heroSection: {
-    marginVertical: 12,
+  heroCard: {
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FDE1DA',
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  eyebrowBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   heroSubtitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     color: Colors.pink,
-    letterSpacing: 1.2,
-    marginBottom: 4,
+    letterSpacing: 0.8,
   },
   heroTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
-    color: Colors.foreground,
-    lineHeight: 38,
+    color: Colors.navy,
+    lineHeight: 34,
+    letterSpacing: -0.4,
   },
   heroDescription: {
-    fontSize: 14,
-    color: Colors.mutedFg,
-    marginTop: 8,
-    lineHeight: 20,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginTop: 6,
+    lineHeight: 19,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: Colors.mutedBg,
-    paddingHorizontal: 16,
-    marginVertical: 16,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    marginTop: 16,
     gap: 10,
+    borderWidth: 1,
+    borderColor: '#E8E5E2',
+    shadowColor: '#101426',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.foreground,
+    fontWeight: '500',
+    color: Colors.navy,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 12,
     marginBottom: 14,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: Colors.foreground,
+    fontWeight: '800',
+    color: Colors.navy,
   },
-  sectionSub: {
+  sectionMeta: {
     fontSize: 12,
-    color: Colors.mutedFg,
-    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   seeAllText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: Colors.coral,
+    color: Colors.pink,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
+    marginBottom: 16,
   },
   categoryCard: {
-    width: '22%',
+    width: '22.5%',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   categoryIconCircle: {
-    width: 62,
-    height: 62,
-    borderRadius: 22,
+    width: 60,
+    height: 60,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#EFEAE6',
   },
   categoryName: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.foreground,
+    color: Colors.navy,
     textAlign: 'center',
   },
-  guaranteeBanner: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF9F6',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.peach,
-    padding: 16,
-    gap: 14,
-    marginVertical: 20,
-    alignItems: 'center',
+  categoryRate: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    marginTop: 2,
+    fontWeight: '500',
   },
-  guaranteeIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.peach,
+  promiseCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E8E5E2',
+    marginVertical: 12,
+    shadowColor: '#101426',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  promiseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  promiseIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#E6F4F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  guaranteeText: {
+  promiseHeaderText: {
     flex: 1,
   },
-  guaranteeTitle: {
+  promiseTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.foreground,
+    color: Colors.navy,
   },
-  guaranteeDesc: {
+  promiseSubtitle: {
     fontSize: 12,
-    color: Colors.mutedFg,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  promiseGrid: {
+    gap: 8,
+  },
+  promiseItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  promiseItemText: {
+    fontSize: 12,
+    color: '#4A4D5E',
+    fontWeight: '500',
+  },
+  stepsCard: {
+    backgroundColor: '#F8F8F6',
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E8E5E2',
+    marginVertical: 10,
+  },
+  stepsHeading: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.navy,
+    marginBottom: 14,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  stepBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.navy,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepNum: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  stepTextCol: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.navy,
+  },
+  stepDesc: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  stepDivider: {
+    height: 1,
+    backgroundColor: '#E8E5E2',
+    marginVertical: 10,
+    marginLeft: 40,
+  },
+  faqCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E8E5E2',
+    marginTop: 16,
+  },
+  faqHeader: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.navy,
+    marginBottom: 12,
+  },
+  faqItem: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0ECE8',
+  },
+  faqQuestionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  faqQuestionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.navy,
+    flex: 1,
+    paddingRight: 8,
+  },
+  faqAnswerText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginTop: 6,
+  },
+  emptyWorkersCard: {
+    padding: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8F8F6',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#E8E5E2',
+    borderStyle: 'dashed',
+    marginVertical: 12,
+  },
+  emptyWorkersTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.navy,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  emptyWorkersSub: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 4,
+    textAlign: 'center',
     lineHeight: 17,
-    marginTop: 2,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(16, 20, 38, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -478,13 +777,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '700',
-    color: Colors.foreground,
+    color: Colors.navy,
   },
   modalSub: {
     fontSize: 13,
-    color: Colors.mutedFg,
+    color: Colors.textSecondary,
     marginBottom: 16,
   },
   cityOption: {
@@ -494,46 +793,23 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 14,
-    backgroundColor: Colors.mutedBg,
+    backgroundColor: '#F8F8F6',
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E8E5E2',
   },
   cityOptionActive: {
-    backgroundColor: Colors.softPink,
-    borderWidth: 1.5,
+    backgroundColor: '#FFF0EA',
     borderColor: Colors.coral,
+    borderWidth: 1.5,
   },
   cityName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: Colors.foreground,
+    color: Colors.navy,
   },
   cityNameActive: {
     fontWeight: '700',
-    color: Colors.foreground,
-  },
-  emptyWorkersCard: {
-    padding: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#EAEAEA',
-    borderStyle: 'dashed',
-    marginVertical: 12,
-  },
-  emptyWorkersTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.foreground,
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  emptyWorkersSub: {
-    fontSize: 13,
-    color: Colors.mutedFg,
-    marginTop: 6,
-    textAlign: 'center',
-    lineHeight: 18,
+    color: Colors.navy,
   },
 });

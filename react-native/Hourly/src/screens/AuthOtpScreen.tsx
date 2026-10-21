@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { ScreenTopBar } from '../components/common/ScreenTopBar';
-import { StateSymbol } from '../components/common/StateSymbol';
 import { GradientButton } from '../components/common/GradientButton';
 
 interface AuthOtpScreenProps {
@@ -18,17 +27,27 @@ export const AuthOtpScreen: React.FC<AuthOtpScreenProps> = ({ phone, onBack, onA
   const [otp, setOtp] = useState<string>(latestOtpNotification?.otp || '');
   const [error, setError] = useState<string>('');
   const [resendNotice, setResendNotice] = useState<string>('');
+  const [resendTimer, setResendTimer] = useState<number>(30);
+  const inputRef = useRef<TextInput>(null);
 
   // Auto-fill code when notification payload arrives from backend
-  React.useEffect(() => {
+  useEffect(() => {
     if (latestOtpNotification?.otp) {
       setOtp(latestOtpNotification.otp);
     }
   }, [latestOtpNotification?.otp]);
 
+  // Resend countdown
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer((prev) => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
   const handleVerify = () => {
     if (otp.length < 6) {
-      setError('Enter the 6-digit code.');
+      setError('Enter the 6-digit verification code.');
       return;
     }
     setError('');
@@ -41,97 +60,156 @@ export const AuthOtpScreen: React.FC<AuthOtpScreenProps> = ({ phone, onBack, onA
   };
 
   const handleResend = () => {
-    setResendNotice('Sending new OTP via notification...');
+    if (resendTimer > 0) return;
+    setResendNotice('Sending new OTP code...');
+    setResendTimer(30);
     requestOtp(phone, () => {
-      setResendNotice('New verification code sent to your notification!');
+      setResendNotice('New verification code sent via notification!');
       setTimeout(() => setResendNotice(''), 4000);
     });
   };
 
+  // Render 6 OTP boxes
+  const otpDigits = otp.split('');
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <ScreenTopBar title="Verify your mobile" onBack={onBack} />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.flex}
+    >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <ScreenTopBar title="" onBack={onBack} />
 
-      {/* Real-time In-App OTP Notification Delivery Banner */}
-      {latestOtpNotification ? (
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.notificationBanner}
-          onPress={() => {
-            setOtp(latestOtpNotification.otp);
-            setError('');
-          }}
-        >
-          <View style={styles.bannerIconCircle}>
-            <Ionicons name="notifications" size={18} color="#FFFFFF" />
-          </View>
-          <View style={styles.bannerTextCol}>
-            <View style={styles.bannerHeaderRow}>
-              <Text style={styles.bannerTitle}>{latestOtpNotification.title}</Text>
-              <Text style={styles.bannerTime}>Now</Text>
+        {/* Real-time In-App OTP Notification Delivery Banner */}
+        {latestOtpNotification ? (
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.notificationBanner}
+            onPress={() => {
+              setOtp(latestOtpNotification.otp);
+              setError('');
+            }}
+          >
+            <View style={styles.bannerIconCircle}>
+              <Ionicons name="notifications" size={18} color="#FFFFFF" />
             </View>
-            <Text style={styles.bannerDetail}>{latestOtpNotification.detail}</Text>
-            <Text style={styles.bannerAction}>Tap here to auto-fill code ({latestOtpNotification.otp})</Text>
+            <View style={styles.bannerTextCol}>
+              <View style={styles.bannerHeaderRow}>
+                <Text style={styles.bannerTitle}>{latestOtpNotification.title}</Text>
+                <Text style={styles.bannerTime}>Just now</Text>
+              </View>
+              <Text style={styles.bannerDetail}>{latestOtpNotification.detail}</Text>
+              <Text style={styles.bannerAction}>Tap to auto-fill code ({latestOtpNotification.otp}) →</Text>
+            </View>
+          </TouchableOpacity>
+        ) : null}
+
+        <View style={styles.headerBlock}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="shield-checkmark" size={28} color={Colors.coral} />
           </View>
-        </TouchableOpacity>
-      ) : null}
+          <Text style={styles.headline}>Verify mobile number</Text>
+          <Text style={styles.subhead}>
+            We've sent a 6-digit code to{' '}
+            <Text style={styles.phoneHighlight}>+91 {phone}</Text>
+          </Text>
+          <TouchableOpacity onPress={onBack} style={styles.editPhoneBtn}>
+            <Text style={styles.editPhoneText}>Change phone number</Text>
+          </TouchableOpacity>
+        </View>
 
-      <StateSymbol>
-        <Ionicons name="shield-checkmark" size={32} color="#FFFFFF" />
-      </StateSymbol>
+        {/* 6 Digit Input Display Card */}
+        <View style={styles.card}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => inputRef.current?.focus()}
+            style={styles.boxesRow}
+          >
+            {[0, 1, 2, 3, 4, 5].map((index) => {
+              const digit = otpDigits[index] || '';
+              const isCurrent = otp.length === index;
+              return (
+                <View
+                  key={index}
+                  style={[
+                    styles.digitBox,
+                    digit ? styles.digitBoxFilled : null,
+                    isCurrent ? styles.digitBoxActive : null,
+                    error ? styles.digitBoxError : null,
+                  ]}
+                >
+                  <Text style={styles.digitText}>{digit}</Text>
+                </View>
+              );
+            })}
+          </TouchableOpacity>
 
-      <Text style={styles.headline}>A quick check.</Text>
-      <Text style={styles.subhead}>
-        Enter the six-digit code sent via notification to +91 {phone} to continue.
-      </Text>
-
-      <View style={styles.inputSection}>
-        <Text style={styles.inputLabel}>Verification code</Text>
-        <View style={styles.otpInputContainer}>
+          {/* Hidden actual text input for keyboard */}
           <TextInput
+            ref={inputRef}
             value={otp}
             onChangeText={(val) => {
               const digits = val.replace(/\D/g, '').slice(0, 6);
               setOtp(digits);
               if (error) setError('');
             }}
-            placeholder="• • • • • •"
-            placeholderTextColor={Colors.mutedFg}
             keyboardType="number-pad"
-            style={styles.textInput}
+            style={styles.hiddenInput}
             maxLength={6}
             autoFocus
           />
+
+          {error ? (
+            <View style={styles.errorRow}>
+              <Ionicons name="alert-circle" size={16} color={Colors.destructive} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          {resendNotice ? (
+            <Text style={styles.resendNoticeText}>{resendNotice}</Text>
+          ) : null}
+
+          <View style={styles.buttonContainer}>
+            {isLoading ? (
+              <ActivityIndicator color={Colors.coral} size="large" />
+            ) : (
+              <GradientButton text="Verify & continue" onPress={handleVerify} />
+            )}
+          </View>
+
+          <View style={styles.resendRow}>
+            {resendTimer > 0 ? (
+              <Text style={styles.timerText}>
+                Resend code in <Text style={styles.timerBold}>{resendTimer}s</Text>
+              </Text>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleResend}
+                disabled={isLoading}
+              >
+                <Text style={styles.resendLink}>Resend verification code</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        {resendNotice ? <Text style={styles.resendNoticeText}>{resendNotice}</Text> : null}
-      </View>
-
-      <View style={styles.buttonContainer}>
-        {isLoading ? (
-          <ActivityIndicator color={Colors.coral} size="large" />
-        ) : (
-          <GradientButton text="Verify & continue" onPress={handleVerify} />
-        )}
-      </View>
-
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={handleResend}
-        style={styles.resendBtn}
-        disabled={isLoading}
-      >
-        <Text style={styles.resendText}>Didn't receive it? Resend Notification</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  container: {
+    flex: 1,
   },
   content: {
     padding: 24,
@@ -148,16 +226,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 12,
     alignItems: 'flex-start',
-    shadowColor: Colors.coral,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 3,
   },
   bannerIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: Colors.coral,
     alignItems: 'center',
     justifyContent: 'center',
@@ -174,86 +247,152 @@ const styles = StyleSheet.create({
   bannerTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.foreground,
+    color: Colors.navy,
   },
   bannerTime: {
     fontSize: 11,
-    color: Colors.mutedFg,
+    color: Colors.textSecondary,
   },
   bannerDetail: {
     fontSize: 12,
-    color: Colors.mutedFg,
-    lineHeight: 16,
-    marginTop: 2,
+    color: Colors.navy,
+    marginBottom: 4,
   },
   bannerAction: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.coral,
-    marginTop: 6,
+    color: Colors.pink,
+  },
+  headerBlock: {
+    alignItems: 'center',
+    marginVertical: 14,
+  },
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFF0EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   headline: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: '800',
-    color: Colors.foreground,
-    letterSpacing: -0.5,
-    marginTop: 12,
+    color: Colors.navy,
+    textAlign: 'center',
+    letterSpacing: -0.3,
   },
   subhead: {
-    fontSize: 16,
-    color: Colors.mutedFg,
-    lineHeight: 24,
-    marginTop: 8,
-    marginBottom: 28,
-  },
-  inputSection: {
-    marginBottom: 28,
-  },
-  inputLabel: {
     fontSize: 14,
-    fontWeight: '700',
-    color: Colors.foreground,
-    marginBottom: 8,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 20,
+    maxWidth: 280,
   },
-  otpInputContainer: {
+  phoneHighlight: {
+    fontWeight: '700',
+    color: Colors.navy,
+  },
+  editPhoneBtn: {
+    marginTop: 6,
+    paddingVertical: 4,
+  },
+  editPhoneText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.pink,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E8E5E2',
+    shadowColor: '#101426',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+    marginTop: 8,
+  },
+  boxesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 16,
+  },
+  digitBox: {
+    width: 44,
+    height: 52,
+    borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: '#E8E5E2',
+    backgroundColor: '#F8F8F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  digitBoxFilled: {
+    borderColor: Colors.navy,
     backgroundColor: '#FFFFFF',
   },
-  textInput: {
-    fontSize: 24,
+  digitBoxActive: {
+    borderColor: Colors.pink,
+    borderWidth: 2,
+  },
+  digitBoxError: {
+    borderColor: Colors.destructive,
+  },
+  digitText: {
+    fontSize: 22,
     fontWeight: '700',
-    color: Colors.foreground,
-    letterSpacing: 10,
-    textAlign: 'center',
-    padding: 0,
+    color: Colors.navy,
+  },
+  hiddenInput: {
+    position: 'absolute',
+    opacity: 0.01,
+    height: 1,
+    width: 1,
+  },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 12,
   },
   errorText: {
-    fontSize: 13,
     color: Colors.destructive,
-    marginTop: 8,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   resendNoticeText: {
-    fontSize: 13,
-    color: Colors.success,
-    marginTop: 8,
-    fontWeight: '500',
+    color: Colors.green,
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 12,
   },
   buttonContainer: {
-    marginTop: 12,
+    marginTop: 8,
+    marginBottom: 16,
   },
-  resendBtn: {
-    marginTop: 20,
-    paddingVertical: 12,
+  resendRow: {
     alignItems: 'center',
+    paddingVertical: 6,
   },
-  resendText: {
-    fontSize: 14,
-    fontWeight: '600',
+  timerText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  timerBold: {
+    fontWeight: '700',
+    color: Colors.navy,
+  },
+  resendLink: {
+    fontSize: 13,
+    fontWeight: '700',
     color: Colors.coral,
   },
 });

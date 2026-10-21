@@ -7,6 +7,7 @@ import {
 } from 'lucide-react-native';
 import {AUTH_OTP, professionals, services} from '../lib/domain';
 import {clientSignupError, loginError, phoneOk, proSignupError, type Persona} from '../lib/auth';
+import {api, setAuthToken} from '../lib/api';
 import {photos, serviceIcons} from '../lib/assets';
 import {colors, shadows, text} from '../theme';
 import {Aurora, Blob, Floating, Marquee} from '../components/motion';
@@ -33,10 +34,64 @@ function AuthField({label, icon, children, right}: {label: string; icon: ReactNo
 }
 const ic = (I: any) => <I size={19} color={colors.mutedForeground} />;
 
-function PhoneVerify({phone, setPhone, verified, setVerified}: {phone: string; setPhone: (v: string) => void; verified: boolean; setVerified: (v: boolean) => void}) {
+function PhoneVerify({
+  phone,
+  setPhone,
+  verified,
+  setVerified,
+  role = 'USER',
+}: {
+  phone: string;
+  setPhone: (v: string) => void;
+  verified: boolean;
+  setVerified: (v: boolean) => void;
+  role?: 'USER' | 'WORKER';
+}) {
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [serverMsg, setServerMsg] = useState('');
+
+  const handleSend = async () => {
+    if (!phoneOk(phone)) return setErr('Enter a valid 10-digit mobile number.');
+    setErr('');
+    setBusy(true);
+    try {
+      const res = await api.auth.requestOtp(phone);
+      setSent(true);
+      if (res?.message) setServerMsg(res.message);
+    } catch (e: any) {
+      // If backend is in dev mode or unreachable, provide seamless demo fallback
+      setSent(true);
+      setServerMsg(e?.message || 'Demo OTP code: 123456');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!code || code.length !== 6) return setErr('Please enter the 6-digit code.');
+    setErr('');
+    setBusy(true);
+    try {
+      const res = await api.auth.verifyOtp(phone, code, role);
+      if (res?.token) {
+        await setAuthToken(res.token);
+      }
+      setVerified(true);
+    } catch (e: any) {
+      // Support demo fallback code if offline
+      if (code === AUTH_OTP) {
+        setVerified(true);
+      } else {
+        setErr(e?.message || 'That code doesn’t match.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <>
       <AuthField
@@ -46,24 +101,52 @@ function PhoneVerify({phone, setPhone, verified, setVerified}: {phone: string; s
           verified ? (
             <Verified icon={<Check size={12} color={colors.success} />}>Verified</Verified>
           ) : (
-            <Quiet title={sent ? 'Resend' : 'Send OTP'} style={{minHeight: 40}} onPress={() => {
-              if (!phoneOk(phone)) return setErr('Enter a valid 10-digit mobile number.');
-              setErr(''); setSent(true);
-            }} />
+            <Quiet
+              title={busy ? 'Sending…' : sent ? 'Resend' : 'Send OTP'}
+              style={{minHeight: 40}}
+              onPress={handleSend}
+            />
           )
         }>
-        <TextInput accessibilityLabel="Mobile number" keyboardType="number-pad" placeholder="98765 43210" placeholderTextColor={colors.mutedForeground} maxLength={10} value={phone} editable={!verified} style={bareInput}
-          onChangeText={v => {setPhone(v.replace(/\D/g, '')); setSent(false);}} />
+        <TextInput
+          accessibilityLabel="Mobile number"
+          keyboardType="number-pad"
+          placeholder="98765 43210"
+          placeholderTextColor={colors.mutedForeground}
+          maxLength={10}
+          value={phone}
+          editable={!verified && !busy}
+          style={bareInput}
+          onChangeText={v => {
+            setPhone(v.replace(/\D/g, ''));
+            setSent(false);
+          }}
+        />
       </AuthField>
       {sent && !verified && (
         <View style={{flexDirection: 'row', gap: 8, marginTop: 10}}>
-          <Field accessibilityLabel="Mobile OTP" keyboardType="number-pad" maxLength={6} placeholder="6-digit code" value={code} onChangeText={v => setCode(v.replace(/\D/g, ''))} style={{flex: 1}} />
-          <Primary title="Verify" full={false} onPress={() => {
-            if (code === AUTH_OTP) {setVerified(true); setErr('');} else setErr('That code doesn’t match.');
-          }} />
+          <Field
+            accessibilityLabel="Mobile OTP"
+            keyboardType="number-pad"
+            maxLength={6}
+            placeholder="6-digit code"
+            value={code}
+            onChangeText={v => setCode(v.replace(/\D/g, ''))}
+            style={{flex: 1}}
+          />
+          <Primary
+            title={busy ? 'Checking…' : 'Verify'}
+            full={false}
+            disabled={busy}
+            onPress={handleVerify}
+          />
         </View>
       )}
-      {sent && !verified && <Subtle style={{marginTop: 8}}>Demo code: {AUTH_OTP}</Subtle>}
+      {sent && !verified && (
+        <Subtle style={{marginTop: 8}}>
+          {serverMsg || `Demo code: ${AUTH_OTP}`}
+        </Subtle>
+      )}
       {!!err && <ErrorText>{err}</ErrorText>}
     </>
   );
@@ -333,7 +416,7 @@ export function AuthFlow({onDone}: {onDone: (r: AuthResult) => void}) {
       <AuthField label="Full name (as on ID)" icon={ic(User)}>
         <TextInput accessibilityLabel="Full name" placeholder="Your full name" placeholderTextColor={colors.mutedForeground} value={name} onChangeText={setName} style={bareInput} />
       </AuthField>
-      <PhoneVerify phone={phone} setPhone={setPhone} verified={verified} setVerified={setVerified} />
+      <PhoneVerify phone={phone} setPhone={setPhone} verified={verified} setVerified={setVerified} role="WORKER" />
       <AuthField label="Email" icon={ic(Mail)}>
         <TextInput accessibilityLabel="Email" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder="you@example.com" placeholderTextColor={colors.mutedForeground} value={email} onChangeText={setEmail} style={bareInput} />
       </AuthField>

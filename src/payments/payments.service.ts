@@ -111,15 +111,16 @@ export class PaymentsService {
       if (locked.count === 0) throw new ConflictException('Payment changed, please try again');
 
       // If the gateway fails, this throws and the database changes roll back.
-      const { ref } = await this.gateway.refund(p.gatewayRef, amount);
+      //const { ref } = await this.gateway.refund(p.gatewayRef, amount);
 
-      // The refund comes out of the worker's pending payout.
-      if (p.payout && p.payout.status === 'PENDING') {
+        // The refund comes out of the worker's pending payout.
+      if (p.payout) {
         const left = Math.max(0, p.payout.amount - amount);
-        await tx.payout.update({
-          where: { id: p.payout.id },
+        const res = await tx.payout.updateMany({
+          where: { id: p.payout.id, status: 'PENDING' },
           data: left === 0 ? { amount: 0, status: 'REFUNDED' as const } : { amount: left },
         });
+        if (res.count === 0) throw new ConflictException('Payout is no longer pending');
       }
 
       await tx.auditLog.create({
@@ -128,19 +129,25 @@ export class PaymentsService {
           action: full ? 'PAYMENT_REFUNDED' : 'PAYMENT_PARTIALLY_REFUNDED',
           entityType: 'Payment',
           entityId: p.id,
-          metadata: { amount, reason: body.reason, refundRef: ref },
+                    metadata: { amount, reason: body.reason },
         },
       });
 
-      const payment = await tx.payment.findUniqueOrThrow({ where: { id: p.id } });
+           const payment = await tx.payment.findUniqueOrThrow({ where: { id: p.id } });
+      // Gateway goes last: if it fails, everything above rolls back.
+     const { ref } = await this.gateway.refund(p.gatewayRef, amount, `${p.id}:${totalRefunded}`);
       return { ref, payment };
-    });
+    }, { timeout: 15000 });
 
-    const a = p.timesheet.assignment;
-    await this.events.notify(a.serviceRequest.userId, 'PAYMENT_REFUNDED', 'Refund issued',
-      `Rs ${amount} was refunded to you.`, { paymentId: p.id });
-    await this.events.notify(a.worker.userId, 'PAYMENT_REFUNDED', 'Payment refunded',
-      'A refund was issued on one of your jobs. Your payout was adjusted.', { paymentId: p.id });
+       const a = p.timesheet.assignment;
+    try {
+      await this.events.notify(a.serviceRequest.userId, 'PAYMENT_REFUNDED', 'Refund issued',
+        `Rs ${amount} was refunded to you.`, { paymentId: p.id });
+      await this.events.notify(a.worker.userId, 'PAYMENT_REFUNDED', 'Payment refunded',
+        'A refund was issued on one of your jobs. Your payout was adjusted.', { paymentId: p.id });
+    } catch {
+      // The refund already went through, so a notification failure must not turn it into an error.
+    }
 
     return { ...payment, refundRef: ref };
   }

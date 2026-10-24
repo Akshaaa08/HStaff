@@ -1,19 +1,20 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 
 // The contract every payment provider must follow.
-// Later, Ram writes a real class (Razorpay, Cashfree...) and swaps it in payments.module.ts.
+// The idempotencyKey lets a real gateway refuse to do the same operation twice.
 export abstract class PaymentGateway {
-  abstract refund(paymentRef: string | null, amount: number): Promise<{ ref: string }>;
-  abstract payout(workerId: string, amount: number): Promise<{ ref: string }>;
+  abstract refund(paymentRef: string | null, amount: number, idempotencyKey: string): Promise<{ ref: string }>;
+  abstract payout(workerId: string, amount: number, idempotencyKey: string): Promise<{ ref: string }>;
 }
 
 @Injectable()
 export class MockPaymentGateway extends PaymentGateway {
-  async refund(paymentRef: string | null, amount: number) {
-    return { ref: `MOCK-REFUND-${Date.now()}` };
+  async refund(paymentRef: string | null, amount: number, idempotencyKey: string) {
+    return { ref: `MOCK-REFUND-${randomUUID()}` };
   }
 
-  async payout(workerId: string, amount: number) {
-    return { ref: `MOCK-PAYOUT-${Date.now()}` };
+  async payout(workerId: string, amount: number, idempotencyKey: string) {
+    return { ref: `MOCK-PAYOUT-${randomUUID()}` };
   }
 }

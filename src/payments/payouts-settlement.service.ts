@@ -48,20 +48,28 @@ export class PayoutsSettlementService {
       });
       if (claimed.count === 0) continue;
 
+      let ref: string;
       try {
-        const { ref } = await this.gateway.payout(payout.workerId, payout.amount);
-        await this.prisma.payout.update({
-          where: { id: payout.id },
-          data: { status: 'SETTLED', settledAt: new Date(), gatewayRef: ref },
-        });
-        await this.events.notify(payout.worker.userId, 'PAYOUT_SETTLED', 'Payout sent',
-          `Rs ${payout.amount} was sent to you.`, { payoutId: payout.id });
-        settled++;
+        ({ ref } = await this.gateway.payout(payout.workerId, payout.amount, payout.id));
       } catch (err) {
-        // put it back so the next run tries again
+        // Gateway failed, so no money moved: safe to retry next run.
         await this.prisma.payout.update({ where: { id: payout.id }, data: { status: 'PENDING' } });
         this.log.error(`Payout ${payout.id} failed: ${(err as Error).message}`);
+        continue;
       }
+
+      // Money has moved. Never put this back to PENDING.
+      await this.prisma.payout.update({
+        where: { id: payout.id },
+        data: { status: 'SETTLED', settledAt: new Date(), gatewayRef: ref },
+      });
+      try {
+        await this.events.notify(payout.worker.userId, 'PAYOUT_SETTLED', 'Payout sent',
+          `Rs ${payout.amount} was sent to you.`, { payoutId: payout.id });
+      } catch {
+        // payout is done; ignore notification failure
+      }
+      settled++;
     }
     if (settled > 0) this.log.log(`Settled ${settled} payout(s)`);
   }

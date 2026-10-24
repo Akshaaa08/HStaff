@@ -135,7 +135,7 @@ export class PaymentsService {
 
            const payment = await tx.payment.findUniqueOrThrow({ where: { id: p.id } });
       // Gateway goes last: if it fails, everything above rolls back.
-      const { ref } = await this.gateway.refund(p.gatewayRef, amount);
+     const { ref } = await this.gateway.refund(p.gatewayRef, amount, `${p.id}:${totalRefunded}`);
       return { ref, payment };
     }, { timeout: 15000 });
 

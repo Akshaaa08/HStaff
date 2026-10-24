@@ -1,118 +1,262 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# H-Staff — Comprehensive System Documentation & Integration Guide
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+**H-Staff** is an on-demand home and facility staffing platform built with a high-performance **NestJS (Node.js/TypeScript) Backend** and an **Android-First React Native Frontend**, integrated with Razorpay Test Mode and Google Cloud Translation.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 1. High-Level Architecture & Project Structure
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
+```
+HStaff/
+├── src/                          # NestJS Backend API & Services
+│   ├── auth/                     # OTP authentication & JWT issuance
+│   ├── workers/                  # Worker onboarding, KYC, availability & profiles
+│   ├── service-requests/         # Customer booking creation & worker discovery
+│   ├── offers/                   # Worker offer lifecycle & distributed redis locks
+│   ├── assignments/              # Active job sessions, GPS attendance & OTP verification
+│   ├── payments/                 # Razorpay gateway settlement & worker payouts
+│   ├── feedback/                 # Star ratings, reviews & dispute/complaint filing
+│   ├── events/                   # WebSockets & in-app notifications
+│   ├── audit/                    # Compliance & transaction logging
+│   └── prisma.service.ts         # PostgreSQL database interface
+├── prisma/                       # Database schema & migrations
+├── frontend/                     # React Native Android Mobile Application
+│   ├── android/                  # Android Studio Native Project (Gradle / Java / NDK)
+│   ├── src/
+│   │   ├── lib/
+│   │   │   ├── api.ts            # Network client with token injection & error mapping
+│   │   │   ├── config.ts         # Environment configuration (API, Razorpay, Google Translate)
+│   │   │   ├── domain.ts         # Domain models, pricing tier calculator & state machines
+│   │   │   ├── razorpay.ts       # Razorpay checkout runner with load handling & fallback
+│   │   │   ├── translator.ts     # 10 Indian languages static dictionary & Google Cloud API
+│   │   │   └── storage.ts        # AsyncStorage persistence layer
+│   │   ├── state/
+│   │   │   └── useHStaff.ts      # Core application hook (API-first with mock fallback)
+│   │   ├── screens/              # UI screens (Home, Flow, AuthFlow, Misc, Sheets, shared)
+│   │   └── components/           # UI elements & micro-animations
+│   ├── .env.example              # Public template for environment variables
+│   └── .env                      # Local gitignored environment variables
+└── README.md                     # This file
 ```
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ npm run start
+## 2. End-to-End Business Flow
 
-# watch mode
-$ npm run start:dev
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant App as React Native App
+    participant Backend as NestJS API
+    participant Worker
+    participant Razorpay
 
-# production mode
-$ npm run start:prod
+    Customer->>App: 1. Request OTP (+91 XXXXXXXXXX)
+    App->>Backend: POST /auth/request-otp
+    Customer->>App: 2. Enter OTP (123456)
+    App->>Backend: POST /auth/verify-otp
+    Backend-->>App: JWT Bearer Token
+
+    Customer->>App: 3. Select Service, Hours & Location
+    App->>Backend: POST /service-requests
+    App->>Backend: GET /service-requests/:id/workers
+    Backend-->>App: List of Nearby Verified Workers
+
+    Customer->>App: 4. Choose Worker & Send Request
+    App->>Backend: POST /offers (srId, workerId)
+    Worker->>Backend: POST /offers/:id/respond (accept=true)
+    Backend-->>App: Assignment Created (Status: CONFIRMED)
+
+    Worker->>Backend: POST /assignments/:id/en-route
+    Worker->>Backend: POST /assignments/:id/arrived
+    Customer->>Worker: 5. Share Start OTP (482713)
+    Worker->>Backend: POST /assignments/:id/start (OTP + GPS)
+    Note over App,Backend: Status: IN_PROGRESS
+
+    Worker->>Backend: POST /assignments/:id/end-otp
+    Customer->>Worker: 6. Share End OTP (724819)
+    Worker->>Backend: POST /assignments/:id/end (OTP + GPS)
+    Backend-->>App: Timesheet Generated (Worker Gross + Platform Fee)
+
+    Customer->>App: 7. Open Payment Screen
+    App->>Razorpay: openRazorpayCheckout({ amount: Total, paise })
+    Razorpay-->>App: Payment Success (razorpay_payment_id)
+    App->>Backend: POST /payments (timesheetId)
+    Note over Backend: Settles: Worker fare disbursed, platform fee retained.
 ```
 
-## Run tests
+---
 
+## 3. Pricing & Platform Fee Split Logic
+
+The total amount paid by the customer is calculated and split as follows:
+
+1. **Worker Fare (Disbursed to Worker)**:
+   $$\text{Fare} = \text{Hourly Rate} \times \text{Hours}$$
+   *Example: Sunita Patil charges ₹250/hr $\times$ 1 hr = ₹250.*
+2. **Platform Fee (Retained by H-Staff)**:
+   - 1 hour: **₹50**
+   - 2 hours: **₹100**
+   - 3 hours: **₹200**
+   - Each additional hour: **+₹100/hr**
+3. **Total Customer Bill**:
+   $$\text{Total} = \text{Worker Fare} + \text{Platform Fee}$$
+   *Example for 1 hour: ₹250 (Worker) + ₹50 (Platform Fee) = ₹300 Total.*
+4. **Disbursement**: When payment succeeds via Razorpay, the backend creates a `Payment` record of ₹300 and a `Payout` record of ₹250 directly for the worker.
+
+---
+
+## 4. API Endpoints Specification
+
+### Authentication (`/auth`)
+- `POST /auth/request-otp`: Send 6-digit OTP to mobile number (`{ phone }`).
+- `POST /auth/verify-otp`: Verify code and receive JWT Bearer token (`{ phone, code, role }`).
+
+### Service Requests & Booking (`/service-requests`)
+- `POST /service-requests`: Create a new booking draft with category, address, hours, notes.
+- `GET /service-requests/:id`: Fetch active request details.
+- `GET /service-requests/:id/workers`: Discover matching nearby workers within radius.
+- `GET /service-requests`: List current customer's requests.
+
+### Offers (`/offers`)
+- `POST /offers`: Dispatch an offer to a specific worker (`{ serviceRequestId, workerId }`).
+- `GET /offers/worker`: Worker fetches incoming job offers.
+- `POST /offers/:id/respond`: Worker accepts or declines with distributed Redis mutex lock (`{ accept: boolean }`).
+
+### Assignments & Attendance (`/assignments`)
+- `GET /assignments/:id`: Get active job session details.
+- `GET /assignments/mine`: List active/past assignments for current user.
+- `POST /assignments/:id/en-route`: Transition to worker en-route.
+- `POST /assignments/:id/arrived`: Transition to worker arrived at customer premises.
+- `POST /assignments/:id/start-otp`: Issue 6-digit start code to customer.
+- `POST /assignments/:id/start`: Verify Start OTP with GPS coordinates (`{ otp, latitude, longitude }`).
+- `POST /assignments/:id/end-otp`: Issue 6-digit completion code to customer.
+- `POST /assignments/:id/end`: Verify End OTP with GPS, calculates verified hours and creates timesheet.
+- `GET /assignments/:id/timesheet`: Retrieve generated timesheet.
+
+### Payments (`/payments`)
+- `POST /payments`: Record customer payment and trigger worker payout (`{ timesheetId, simulateFail? }`).
+- `GET /payments/:timesheetId`: Check payment status and fee breakdown.
+
+### Ratings & Disputes (`/ratings` & `/complaints`)
+- `POST /ratings`: Submit star rating, tags, and comments.
+- `POST /complaints`: File service dispute (`NO_SHOW`, `POOR_QUALITY`, `OVERCHARGING`, `UNPROFESSIONAL`, `DAMAGED_PROPERTY`, `OTHER`).
+
+### Notifications (`/notifications`)
+- `GET /notifications`: Fetch user's notification stream.
+- `POST /notifications/:id/read`: Mark notification as read.
+
+---
+
+## 5. Resilient Fallback & Load Handling Architecture
+
+Mobile apps encounter dropped connections, offline mode, and latency spikes. H-Staff implements a **two-tier defense**:
+
+1. **Network Abort & Timeout Defense**:
+   - Every fetch request is governed by an `AbortController` set to 12,000ms (`API_CONFIG.TIMEOUT_MS`). Slow 2G/3G connections will not freeze the UI thread.
+2. **Graceful Fallback Mode**:
+   - Every backend call in [useHStaff.ts](file:///c:/Users/Abhijeet/Desktop/hstaff/HStaff/frontend/src/state/useHStaff.ts) is wrapped in `try/catch`.
+   - If the backend is unreachable or undergoing maintenance:
+     - Worker discovery falls back to localized demo profiles.
+     - OTP verification falls back to built-in demo keys (`482713` Start, `724819` End, `123456` Auth).
+     - State transitions continue locally, saving to `AsyncStorage`.
+     - Razorpay runs in test simulation (`pay_test_xxxx`) if the native bridge is unavailable.
+3. **Multi-Language Offline Fallback**:
+   - [translator.ts](file:///c:/Users/Abhijeet/Desktop/hstaff/HStaff/frontend/src/lib/translator.ts) includes a static pre-compiled dictionary for all 10 Indian languages.
+   - UI renders instantly without waiting for Google Cloud API responses.
+   - Dynamic caching prevents repeated API hits and protects Google API quotas.
+
+---
+
+## 6. How to Run & Test Locally
+
+### Prerequisites
+- **Node.js**: `v22.11.0` or higher
+- **PostgreSQL**: Local or Docker instance running on port 5432
+- **Redis**: Local or Docker instance running on port 6379
+
+### Step 1: Start Backend
 ```bash
-# unit tests
-$ npm run test
+# In the root repository directory (HStaff/)
+npm install
+npx prisma generate
+npx prisma migrate dev
+npm run start:dev
+```
+Backend will start on `http://localhost:3000`.
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+### Step 2: Configure Frontend Environment
+In `HStaff/frontend/`:
+```bash
+# Create local .env from example (never commit .env to GitHub)
+cp .env.example .env
+```
+Populate your test keys:
+```env
+REACT_APP_API_BASE_URL=http://10.0.2.2:3000
+RAZORPAY_KEY_ID=rzp_test_YOUR_KEY
+GOOGLE_TRANSLATE_API_KEY=AIzaSy_YOUR_KEY
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+### Step 3: Run Frontend in Metro Bundler
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+cd frontend
+npm install
+cmd.exe /c "npm start"
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Observability
+## 7. How to Open, Build & Run in Android Developer Studio
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+### 1. Open in Android Studio
+1. Launch **Android Studio**.
+2. Select **Open** and browse to:
+   `c:\Users\Abhijeet\Desktop\hstaff\HStaff\frontend\android` (select the `android` folder, NOT the root).
+3. Wait for Android Studio to index and perform **Gradle Sync**.
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+### 2. Configure SDK & JDK
+- Go to **File ➔ Project Structure ➔ SDK Location**:
+  - **Gradle JDK**: Set to **Embedded JDK 17** (or Java 17).
+  - **SDK Platforms**: Ensure **Android API 36 / 37** is installed.
+  - **SDK Tools**: Build-Tools `37.0.0`, NDK `27.1.12297006`.
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+### 3. Setup Emulator or Real Android Device
+- **Emulator**:
+  - Open **Device Manager** ➔ Create Device (e.g. Pixel 8) with **API 36/37** ➔ Launch emulator.
+  - Android emulator loopback `10.0.2.2` will automatically reach your local NestJS backend at `http://localhost:3000`.
+- **Physical Device**:
+  - Enable **Developer Options** and **USB Debugging** on your phone.
+  - Connect via USB.
+  - Run in terminal:
+    ```bash
+    adb reverse tcp:8081 tcp:8081    # Metro bundler
+    adb reverse tcp:3000 tcp:3000    # Backend API
+    ```
 
-This project is already instrumented. Create a free account at [observe.nestjs.com](https://observe.nestjs.com), add an application, and paste the generated app key and secret into the `ObserveModule.forRoot()` call in `src/app.module.ts`.
+### 4. Build and Run App
+- In Android Studio, ensure the run configuration is set to **app** and click the green **Run (▶)** button.
+- Alternatively, run from the command line:
+  ```bash
+  cd frontend
+  npm run android
+  ```
 
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
+---
 
-## Resources
+## 8. Verification & Test Checklist
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- [x] **Authentication**: Request OTP and verify with `123456`.
+- [x] **Worker Discovery**: Filter by services (Cleaning, Electrical, Plumbing, etc.).
+- [x] **Language Switching**: Tap the **Languages icon** in the top navigation bar and select Hindi, Marathi, Gujarati, Tamil, Kannada, Telugu, Malayalam, Punjabi, or Bengali.
+- [x] **Live Job Cycle**:
+  1. Worker accepts booking.
+  2. Worker transitions to `En Route` ➔ `Arrived`.
+  3. Start service with Start Code `482713`.
+  4. End service with End Code `724819`.
+- [x] **Razorpay Payment**:
+  1. Review fare split: Worker fare (e.g. ₹250) + Platform fee (e.g. ₹50) = ₹300.
+  2. Click **Pay ₹300**.
+  3. Verify payment success screen and worker rating review.
+  4. Test error handling using the **"Test failure handling"** button.

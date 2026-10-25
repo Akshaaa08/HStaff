@@ -139,6 +139,9 @@ The total amount paid by the customer is calculated and split as follows:
 - `POST /payments`: Record customer payment and trigger worker payout (`{ timesheetId, simulateFail? }`).
 - `GET /payments/:timesheetId`: Check payment status and fee breakdown.
 
+### Worker Profile (`/workers`)
+- `PUT /workers/me/bank-info`: Save payout details (`accountHolderName`, `bankName`, `accountNumber`, `ifscCode`). Account numbers are encrypted at rest and returned only as a masked value from `GET /workers/me`.
+
 ### Ratings & Disputes (`/ratings` & `/complaints`)
 - `POST /ratings`: Submit star rating, tags, and comments.
 - `POST /complaints`: File service dispute (`NO_SHOW`, `POOR_QUALITY`, `OVERCHARGING`, `UNPROFESSIONAL`, `DAMAGED_PROPERTY`, `OTHER`).
@@ -184,7 +187,7 @@ npx prisma generate
 npx prisma migrate dev
 npm run start:dev
 ```
-Backend will start on `http://localhost:3000`.
+Set `BANK_INFO_ENCRYPTION_KEY` to a 64-character hexadecimal key before saving bank details; production startup requires it. Backend will start on `http://localhost:3000`.
 
 ### Step 2: Configure Frontend Environment
 In `HStaff/frontend/`:

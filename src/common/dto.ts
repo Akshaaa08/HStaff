@@ -149,6 +149,20 @@ export class UpsertWorkerDto {
   skillIds?: number[];
 }
 
+export class UpdateWorkerBankInfoDto {
+  @IsString() @IsNotEmpty() @MaxLength(100)
+  accountHolderName: string;
+
+  @IsString() @IsNotEmpty() @MaxLength(100)
+  bankName: string;
+
+  @Matches(/^\d{6,18}$/, { message: 'accountNumber must contain 6 to 18 digits' })
+  accountNumber: string;
+
+  @Matches(/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/, { message: 'ifscCode must be a valid IFSC code' })
+  ifscCode: string;
+}
+
 const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export class AvailabilitySlotDto {

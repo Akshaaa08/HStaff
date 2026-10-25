@@ -29,6 +29,11 @@ export function validateEnv(config: Record<string, unknown>) {
     problems.push('JWT_SECRET is a placeholder value; set a real secret');
   }
 
+  const bankInfoKey = config.BANK_INFO_ENCRYPTION_KEY;
+  if (isProd && (typeof bankInfoKey !== 'string' || !/^[\da-fA-F]{64}$/.test(bankInfoKey))) {
+    problems.push('BANK_INFO_ENCRYPTION_KEY must be a 64-character hexadecimal key in production');
+  }
+
   if (problems.length > 0) {
     throw new Error(`Invalid environment configuration: ${problems.join('; ')}`);
   }

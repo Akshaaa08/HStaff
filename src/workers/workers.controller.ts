@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { WorkersService } from './workers.service';
-import { SetAvailabilityDto, UpsertWorkerDto } from '../common/dto';
+import { SetAvailabilityDto, UpdateWorkerBankInfoDto, UpsertWorkerDto } from '../common/dto';
 
 @Controller('workers')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -19,6 +19,11 @@ export class WorkersController {
   @Put('me')
   updateMe(@Req() req: any, @Body() body: UpsertWorkerDto) {
     return this.workers.upsertMe(req.user.userId, body);
+  }
+
+  @Put('me/bank-info')
+  updateBankInfo(@Req() req: any, @Body() body: UpdateWorkerBankInfoDto) {
+    return this.workers.updateBankInfo(req.user.userId, body);
   }
 
   @Get('availability')

@@ -1,4 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { createCipheriv, randomBytes } from 'node:crypto';
+import {
+  BadRequestException, Injectable, NotFoundException, ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 function toMinute(t: string): number {
@@ -18,10 +21,74 @@ export class WorkersService {
         categories: { include: { category: true } },
         skills: { include: { skill: true } },
         availability: true,
+        bankInfo: true,
       },
     });
     if (!profile) throw new NotFoundException('No worker profile yet');
-    return profile;
+    const { bankInfo, ...worker } = profile;
+    return {
+      ...worker,
+      bankInfo: bankInfo ? this.safeBankInfo(bankInfo) : null,
+    };
+  }
+
+  async updateBankInfo(userId: string, body: {
+    accountHolderName: string;
+    bankName: string;
+    accountNumber: string;
+    ifscCode: string;
+  }) {
+    const profile = await this.prisma.workerProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!profile) throw new NotFoundException('No worker profile yet');
+
+    const bankInfoData = {
+      accountHolderName: body.accountHolderName,
+      bankName: body.bankName,
+      accountNumberEncrypted: this.encryptAccountNumber(body.accountNumber),
+      accountNumberLast4: body.accountNumber.slice(-4),
+      ifscCode: body.ifscCode.toUpperCase(),
+    };
+    const bankInfo = await this.prisma.workerBankInfo.upsert({
+      where: { workerId: profile.id },
+      update: bankInfoData,
+      create: { ...bankInfoData, workerId: profile.id },
+    });
+    return this.safeBankInfo(bankInfo);
+  }
+
+  private encryptAccountNumber(accountNumber: string): string {
+    const keyHex = process.env.BANK_INFO_ENCRYPTION_KEY;
+    if (!keyHex || !/^[\da-fA-F]{64}$/.test(keyHex)) {
+      throw new ServiceUnavailableException('Bank info encryption is not configured');
+    }
+
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', Buffer.from(keyHex, 'hex'), iv);
+    const encrypted = Buffer.concat([cipher.update(accountNumber, 'utf8'), cipher.final()]);
+    return [iv, cipher.getAuthTag(), encrypted].map((part) => part.toString('hex')).join(':');
+  }
+
+  private safeBankInfo(bankInfo: {
+    id: string;
+    accountHolderName: string;
+    bankName: string;
+    accountNumberEncrypted: string;
+    accountNumberLast4: string;
+    ifscCode: string;
+    updatedAt: Date;
+  }) {
+    const { id, accountHolderName, bankName, accountNumberLast4, ifscCode, updatedAt } = bankInfo;
+    return {
+      id,
+      accountHolderName,
+      bankName,
+      accountNumberMasked: `****${accountNumberLast4}`,
+      ifscCode,
+      updatedAt,
+    };
   }
 
   async upsertMe(userId: string, body: any) {

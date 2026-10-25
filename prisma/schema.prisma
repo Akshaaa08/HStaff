@@ -148,6 +148,19 @@ model WorkerProfile {
   assignments        Assignment[]
   payouts            Payout[]
   availability       WorkerAvailability[]
+  bankInfo           WorkerBankInfo?
+}
+
+model WorkerBankInfo {
+  id                String        @id @default(uuid())
+  worker            WorkerProfile @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  workerId          String        @unique
+  accountHolderName String
+  bankName          String
+  accountNumberEncrypted String
+  accountNumberLast4     String   @db.VarChar(4)
+  ifscCode               String
+  updatedAt              DateTime @updatedAt
 }
 
 model WorkerCategory {

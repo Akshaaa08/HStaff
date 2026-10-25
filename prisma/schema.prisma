@@ -54,6 +54,7 @@ enum TimesheetStatus {
   PENDING_APPROVAL
   APPROVED
   DISPUTED
+  REJECTED
 }
 
 enum PaymentStatus {

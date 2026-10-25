@@ -352,6 +352,38 @@ export function useHStaff() {
     } else {await transition('PAYMENT_PENDING'); setSheet(null); go('payment');}
   };
 
+  const sendJobOtp = async (kind: 'start' | 'end') => {
+    if (!assignmentId) {
+      setNotice(`Demo ${kind} code: ${kind === 'start' ? '482713' : '724819'}`);
+      return;
+    }
+    setError('');
+    try {
+      if (kind === 'start') await api.assignments.issueStartOtp(assignmentId);
+      else await api.assignments.issueEndOtp(assignmentId);
+      setNotice(`The ${kind === 'start' ? 'start' : 'completion'} code was sent by SMS.`);
+    } catch (e: any) {
+      setError(e?.message || 'Could not send the code by SMS. Please try again.');
+    }
+  };
+
+  const submitTimesheetDispute = async (reason: string) => {
+    if (!timesheetId) {
+      setError('Timesheet details are not available yet.');
+      return;
+    }
+    setError('');
+    try {
+      await api.assignments.disputeTimesheet(timesheetId, reason);
+      setSession(s => s.booking ? { ...s, booking: { ...s.booking, status: 'DISPUTED' } } : s);
+      setSheet(null);
+      setNotice('Your dispute was submitted for review.');
+      go('service');
+    } catch (e: any) {
+      setError(e?.message || 'Could not submit the timesheet dispute.');
+    }
+  };
+
   /**
    * Process payment via Razorpay test mode checkout with backend settlement,
    * handling API fallouts, network timeouts, and load handling gracefully.
@@ -368,6 +400,15 @@ export function useHStaff() {
     try {
       if (fail) {
         throw new Error('Simulated test failure triggered by user');
+      }
+
+      if (timesheetId && assignmentId) {
+        const timesheet = await api.assignments.timesheet(assignmentId);
+        if (timesheet.status === 'PENDING_APPROVAL') {
+          await api.assignments.approveTimesheet(timesheetId);
+        } else if (timesheet.status !== 'APPROVED') {
+          throw new Error(`This timesheet is ${String(timesheet.status).toLowerCase()} and cannot be paid.`);
+        }
       }
 
       // Step 1: Trigger Razorpay Checkout (test mode)
@@ -541,10 +582,10 @@ export function useHStaff() {
     pastTab, setPastTab, elapsed, loading, authPhone, setAuthPhone, messages, setMessages, chat, setChat, address, setAddress,
     outcome, setOutcome, setupName, setSetupName, setupSkill, setSetupSkill, setupRate, setSetupRate, scrollRef,
     b, person, isPro, patch, go, back, navigateTab, closeSheet, switchRole, transition, selectService, browse, sendRequest,
-    makeProRequest, acceptPro, finishReview, simulatedPayment, verifyOtp, authSubmit, authenticate, onAuthDone,
+    makeProRequest, acceptPro, finishReview, simulatedPayment, verifyOtp, sendJobOtp, submitTimesheetDispute, authSubmit, authenticate, onAuthDone,
     filteredServices, sorted, dockVisible,
     /* New API-specific exports */
-    allProfessionals, assignmentId, serviceRequestId, logout, completeSetup, submitComplaint,
+    allProfessionals, assignmentId, serviceRequestId, timesheetId, logout, completeSetup, submitComplaint,
     language, setLanguage,
   };
 }

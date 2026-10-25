@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma.service';
+import { SmsService } from '../src/sms/sms.service';
  
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
@@ -22,6 +23,7 @@ describe('H-Staff full lifecycle (e2e)', () => {
   let prisma: PrismaService;
   const jwt = new JwtService({ secret: process.env.JWT_SECRET });
   const tok: Record<string, string> = {};
+  const smsMock = { send: jest.fn().mockResolvedValue(undefined) };
   const auth = (k: string) => ({ Authorization: 'Bearer ' + tok[k] });
  
   let workerProfileId: string;
@@ -33,7 +35,10 @@ describe('H-Staff full lifecycle (e2e)', () => {
   let paymentId: string;
  
   beforeAll(async () => {
-    const mod = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const mod = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(SmsService)
+      .useValue(smsMock)
+      .compile();
     app = mod.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
@@ -135,9 +140,12 @@ describe('H-Staff full lifecycle (e2e)', () => {
   });
  
   it('start needs the right OTP and the right place', async () => {
+    smsMock.send.mockClear();
     const otp = await request(app.getHttpServer())
       .post(`/assignments/${assignmentId}/start-otp`).set(auth('user')).expect(201);
-    const code = otp.body.otp;
+    expect(otp.body).not.toHaveProperty('otp');
+    const code = smsMock.send.mock.calls[0][1].match(/\b\d{6}\b/)?.[0];
+    expect(code).toBeDefined();
     // too far away
     await request(app.getHttpServer())
       .post(`/assignments/${assignmentId}/start`).set(auth('worker'))
@@ -159,11 +167,14 @@ describe('H-Staff full lifecycle (e2e)', () => {
   });
  
   it('end OTP generates the timesheet (300 + 50 = 350)', async () => {
+    smsMock.send.mockClear();
     const otp = await request(app.getHttpServer())
       .post(`/assignments/${assignmentId}/end-otp`).set(auth('user')).expect(201);
+    expect(otp.body).not.toHaveProperty('otp');
+    const code = smsMock.send.mock.calls[0][1].match(/\b\d{6}\b/)?.[0];
     const ts = await request(app.getHttpServer())
       .post(`/assignments/${assignmentId}/end`).set(auth('worker'))
-      .send({ otp: otp.body.otp, latitude: 18.5301, longitude: 73.8501 }).expect(201);
+      .send({ otp: code, latitude: 18.5301, longitude: 73.8501 }).expect(201);
     timesheetId = ts.body.id;
     expect(ts.body.grossWorkerAmount).toBe(300);
     expect(ts.body.platformFee).toBe(50);

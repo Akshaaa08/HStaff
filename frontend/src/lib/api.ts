@@ -221,7 +221,7 @@ export const api = {
       }),
 
     issueStartOtp: (id: string) =>
-      apiRequest<{ otp: string; expiresInMinutes: number }>(`/assignments/${id}/start-otp`, {
+      apiRequest<{ message: string; expiresInMinutes: number }>(`/assignments/${id}/start-otp`, {
         method: 'POST',
       }),
 
@@ -232,7 +232,7 @@ export const api = {
       }),
 
     issueEndOtp: (id: string) =>
-      apiRequest<{ otp: string; expiresInMinutes: number }>(`/assignments/${id}/end-otp`, {
+      apiRequest<{ message: string; expiresInMinutes: number }>(`/assignments/${id}/end-otp`, {
         method: 'POST',
       }),
 
@@ -247,6 +247,12 @@ export const api = {
     approveTimesheet: (timesheetId: string) =>
       apiRequest(`/timesheets/${timesheetId}/approve`, {
         method: 'POST',
+      }),
+
+    disputeTimesheet: (timesheetId: string, reason: string) =>
+      apiRequest(`/timesheets/${timesheetId}/dispute`, {
+        method: 'POST',
+        body: { reason },
       }),
   },
 

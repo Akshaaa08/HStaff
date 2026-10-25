@@ -7,10 +7,12 @@ import {
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { SmsService } from '../sms/sms.service';
 
 const MAX_DISTANCE_M = 300; // worker must be within 300 m of the job
 const OTP_MINUTES = 15;
 const MIN_BILLED_HOURS = 1; // minimum billing, rounded up in 15-minute steps after that
+const TIMESHEET_REVIEW_HOURS = 24;
 
 function distanceMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371000;
@@ -25,7 +27,7 @@ function distanceMeters(lat1: number, lon1: number, lat2: number, lon2: number) 
 
 @Injectable()
 export class AssignmentsService {
-  constructor(private prisma: PrismaService, private events: EventsGateway) {}
+  constructor(private prisma: PrismaService, private events: EventsGateway, private sms: SmsService) {}
 
   private async load(id: string) {
     const a = await this.prisma.assignment.findUnique({
@@ -110,7 +112,27 @@ export class AssignmentsService {
       update: data,
       create: { assignmentId: a.id, ...data },
     });
-    return { otp, expiresInMinutes: OTP_MINUTES };
+    const recipient = await this.prisma.user.findUnique({
+      where: { id: a.serviceRequest.userId },
+      select: { phone: true },
+    });
+    try {
+      if (!recipient) throw new BadRequestException('Customer phone number not found');
+      const action = kind === 'start' ? 'start' : 'completion';
+      await this.sms.send(
+        recipient.phone,
+        `Your H-Staff ${action} code is ${otp}. It expires in ${OTP_MINUTES} minutes.`,
+      );
+    } catch (error) {
+      await this.prisma.attendanceSession.updateMany({
+        where: { assignmentId: a.id, ...(kind === 'start' ? { startOtpHash: hash } : { endOtpHash: hash }) },
+        data: kind === 'start'
+          ? { startOtpHash: null, startOtpExpiresAt: null }
+          : { endOtpHash: null, endOtpExpiresAt: null },
+      });
+      throw error;
+    }
+    return { message: 'OTP sent by SMS', expiresInMinutes: OTP_MINUTES };
   }
 
   // WORKER enters the OTP, with GPS coordinates.
@@ -213,9 +235,30 @@ export class AssignmentsService {
     if (!t) throw new NotFoundException('Timesheet not found');
     if (t.assignment.serviceRequest.userId !== user.userId) throw new ForbiddenException('Not your timesheet');
     if (t.status !== 'PENDING_APPROVAL') throw new BadRequestException(`Timesheet is already ${t.status}`);
-    return this.prisma.timesheet.update({
-      where: { id: t.id },
+    const cutoff = new Date(Date.now() - TIMESHEET_REVIEW_HOURS * 60 * 60 * 1000);
+    const updated = await this.prisma.timesheet.updateMany({
+      where: { id: t.id, status: 'PENDING_APPROVAL', submittedAt: { gt: cutoff } },
       data: { status: 'APPROVED', approvedAt: new Date() },
     });
+    if (updated.count === 0) throw new BadRequestException('The 24-hour timesheet review window has expired');
+    return this.prisma.timesheet.findUnique({ where: { id: t.id } });
+  }
+
+  async dispute(user: any, timesheetId: string, reason: string) {
+    const t = await this.prisma.timesheet.findUnique({
+      where: { id: timesheetId },
+      include: { assignment: { include: { serviceRequest: true } } },
+    });
+    if (!t) throw new NotFoundException('Timesheet not found');
+    if (t.assignment.serviceRequest.userId !== user.userId) throw new ForbiddenException('Not your timesheet');
+    if (t.status !== 'PENDING_APPROVAL') throw new BadRequestException(`Timesheet is already ${t.status}`);
+    const cutoff = new Date(Date.now() - TIMESHEET_REVIEW_HOURS * 60 * 60 * 1000);
+    const disputedAt = new Date();
+    const updated = await this.prisma.timesheet.updateMany({
+      where: { id: t.id, status: 'PENDING_APPROVAL', submittedAt: { gt: cutoff } },
+      data: { status: 'DISPUTED', disputeReason: reason, disputedAt },
+    });
+    if (updated.count === 0) throw new BadRequestException('The 24-hour timesheet review window has expired');
+    return this.prisma.timesheet.findUnique({ where: { id: t.id } });
   }
 }

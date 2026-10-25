@@ -34,6 +34,12 @@ export function validateEnv(config: Record<string, unknown>) {
     problems.push('BANK_INFO_ENCRYPTION_KEY must be a 64-character hexadecimal key in production');
   }
 
+  for (const key of ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER']) {
+    if (isProd && (typeof config[key] !== 'string' || config[key].trim() === '')) {
+      problems.push(`${key} is required for production SMS delivery`);
+    }
+  }
+
   if (problems.length > 0) {
     throw new Error(`Invalid environment configuration: ${problems.join('; ')}`);
   }

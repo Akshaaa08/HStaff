@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { AssignmentsService } from './assignments.service';
-import { VerifyJobDto } from '../common/dto';
+import { DisputeTimesheetDto, VerifyJobDto } from '../common/dto';
 
 @Controller()
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -65,5 +65,11 @@ export class AssignmentsController {
   @Roles('USER')
   approve(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.approve(req.user, id);
+  }
+
+  @Post('timesheets/:id/dispute')
+  @Roles('USER')
+  dispute(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: DisputeTimesheetDto) {
+    return this.svc.dispute(req.user, id, body.reason);
   }
 }

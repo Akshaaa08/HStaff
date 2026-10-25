@@ -26,6 +26,17 @@ function ReportBody({c}: {c: C}) {
   );
 }
 
+function TimesheetDisputeBody({c}: {c: C}) {
+  const [reason, setReason] = useState('');
+  return (
+    <>
+      <Subtle>Describe what looks incorrect. You can dispute a timesheet within 24 hours of submission.</Subtle>
+      <TextArea rows={4} accessibilityLabel="Timesheet dispute reason" placeholder="Explain the issue…" value={reason} onChangeText={setReason} style={{marginTop: 12}} />
+      <Primary title="Submit dispute" disabled={!reason.trim()} icon={<ShieldCheck size={16} color="#fff" />} onPress={() => c.submitTimesheetDispute(reason.trim())} />
+    </>
+  );
+}
+
 export function SheetHost({c}: {c: C}) {
   const {sheet, b, person, session, isPro} = c;
   if (!sheet) return null;
@@ -51,13 +62,20 @@ export function SheetHost({c}: {c: C}) {
       const start = sheet === 'start-otp';
       body = (<>
         <Subtle>{start ? 'Verify arrival before the service starts.' : 'Verify that the service is complete.'}</Subtle>
-        <FieldLabel>{start ? 'Start' : 'Completion'} code</FieldLabel>
-        <Field accessibilityLabel={start ? 'Start OTP' : 'End OTP'} keyboardType="number-pad" maxLength={6} value={c.otp} onChangeText={v => c.setOtp(v.replace(/\D/g, ''))} />
-        <Subtle style={{marginTop: 12}}>Demo {start ? 'Start' : 'End'} code: {start ? START_OTP : END_OTP}</Subtle>
-        <Primary title="Verify code" icon={<ShieldCheck size={16} color="#fff" />} onPress={c.verifyOtp} />
+        {!isPro && c.assignmentId ? (
+          <Primary title="Send Completion Code by SMS" icon={<ShieldCheck size={16} color="#fff" />} onPress={() => c.sendJobOtp(start ? 'start' : 'end')} />
+        ) : <>
+          <FieldLabel>{start ? 'Start' : 'Completion'} code</FieldLabel>
+          <Field accessibilityLabel={start ? 'Start OTP' : 'End OTP'} keyboardType="number-pad" maxLength={6} value={c.otp} onChangeText={v => c.setOtp(v.replace(/\D/g, ''))} />
+          {!c.assignmentId && <Subtle style={{marginTop: 12}}>Demo {start ? 'Start' : 'End'} code: {start ? START_OTP : END_OTP}</Subtle>}
+          <Primary title="Verify code" icon={<ShieldCheck size={16} color="#fff" />} onPress={c.verifyOtp} />
+        </>}
       </>);
       break;
     }
+    case 'timesheet-dispute':
+      body = <TimesheetDisputeBody c={c} />;
+      break;
     case 'cancel':
       body = (<><Subtle>Cancel this booking? This prototype has no cancellation charge. No payment has been taken.</Subtle>
         <Destructive title="Yes, cancel booking" onPress={() => {c.transition('CANCELLED'); c.setSheet(null);}} />
@@ -133,7 +151,7 @@ export function SheetHost({c}: {c: C}) {
     default: body = <Subtle>Your account preferences are saved.</Subtle>;
   }
   return (
-    <BottomSheet title={titles[sheet] ?? sheet} onClose={c.closeSheet}>
+    <BottomSheet title={sheet === 'end-otp' && !isPro && c.assignmentId ? 'Send completion code' : titles[sheet] ?? sheet} onClose={c.closeSheet}>
       {body}
       {!!c.error && <ErrorText>{c.error}</ErrorText>}
       {!!c.notice && <SuccessText>{c.notice}</SuccessText>}

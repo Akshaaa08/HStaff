@@ -272,15 +272,15 @@ export function Service({c}: {c: C}) {
               <Subtle center>Started at {clock(b.startedAt ?? Date.now())}</Subtle>
             </View>
           )}
-          {b.status === 'COMPLETED_PENDING_PAYMENT' && (
-            <View style={{alignItems: 'stretch'}}>
-              {sym(<LockKeyhole size={33} color={colors.foreground} />)}
-              <Title center heading="Complete service" description="Please verify that the service is complete." />
-              <Subtle center style={{marginTop: 16}}>{isPro ? 'Ask your customer for the completion code.' : 'Your completion code'}</Subtle>
-              {!isPro && <OTPDisplay code={END_OTP} />}
-              <Subtle center>{isPro ? 'Only enter the code after completing the work.' : 'Share this code with your professional only when you’re satisfied the work is complete.'}</Subtle>
-            </View>
-          )}
+              {b.status === 'COMPLETED_PENDING_PAYMENT' && (
+                <View style={{alignItems: 'stretch'}}>
+                  {sym(<LockKeyhole size={33} color={colors.foreground} />)}
+                  <Title center heading="Complete service" description="Please verify that the service is complete." />
+                  <Subtle center style={{marginTop: 16}}>{isPro ? 'Ask your customer for the completion code.' : c.assignmentId ? 'Send Completion Code by SMS' : 'Your completion code'}</Subtle>
+                  {!isPro && !c.assignmentId && <OTPDisplay code={END_OTP} />}
+                  <Subtle center>{isPro ? 'Only enter the code after completing the work.' : c.assignmentId ? 'Send a completion code to your phone, then share it when the work is complete.' : 'Share this demo code only when you’re satisfied the work is complete.'}</Subtle>
+                </View>
+              )}
           {['PAYMENT_PENDING', 'FAILED'].includes(b.status) && (
             <>
               <Title heading="Ready for payment" description="Your service is complete. Your booking is safe." />
@@ -312,8 +312,12 @@ export function Service({c}: {c: C}) {
           {b.status === 'EN_ROUTE' && <Primary title={isPro ? 'I’ve arrived' : 'Confirm professional has arrived'} icon={<Check size={16} color="#fff" />} onPress={() => c.transition('ARRIVED')} />}
           {b.status === 'ARRIVED' && (
             <>
-              {!isPro && (<><OTPDisplay code={START_OTP} /><Subtle center>Only share this code after your professional has arrived.</Subtle></>)}
-              <Primary title={isPro ? 'Enter Start OTP' : 'Verify Start Code'} icon={<ShieldCheck size={16} color="#fff" />} onPress={() => c.setSheet('start-otp')} />
+                  {!isPro && !c.assignmentId && (<><OTPDisplay code={START_OTP} /><Subtle center>Only share this demo code after your professional has arrived.</Subtle></>)}
+                  {isPro
+                    ? <Primary title="Enter Start OTP" icon={<ShieldCheck size={16} color="#fff" />} onPress={() => c.setSheet('start-otp')} />
+                    : c.assignmentId
+                      ? <Primary title="Send Start Code by SMS" icon={<ShieldCheck size={16} color="#fff" />} onPress={() => c.sendJobOtp('start')} />
+                      : <Primary title="Verify Start Code" icon={<ShieldCheck size={16} color="#fff" />} onPress={() => c.setSheet('start-otp')} />}
             </>
           )}
           {b.status === 'IN_PROGRESS' && <Primary title={isPro ? 'Request completion' : 'Review completed service'} icon={<Check size={16} color="#fff" />} onPress={() => c.transition('COMPLETED_PENDING_PAYMENT')} />}
@@ -346,6 +350,10 @@ export function Payment({c}: {c: C}) {
       <Title heading={t('The finishing touch.', language)} description={t('Pay securely after your service is complete.', language)} />
       <Summary><Txt w="bold" size={16}>{b?.service}</Txt><Subtle>{person.name}</Subtle><Subtle>{b?.id}</Subtle></Summary>
       <PriceBreakdown rate={person.rate} hours={hrs} />
+      {!c.isPro && c.timesheetId && <>
+        <Subtle>Review and approve this timesheet within 24 hours, or dispute it for support review.</Subtle>
+        <Quiet center size={13} style={{marginTop: 10}} title="Dispute timesheet" onPress={() => c.setSheet('timesheet-dispute')} />
+      </>}
       <FieldLabel>{t('Payment method', language)}</FieldLabel>
       <Stack>{['UPI', 'Cards', 'Net Banking'].map(item => <Choice key={item} title={item} icon={item === 'UPI' ? <Zap size={20} color={colors.foreground} /> : <CreditCard size={20} color={colors.foreground} />} selected={c.payment === item} onPress={() => c.setPayment(item)} />)}</Stack>
       <Primary title={c.loading ? t('Processing…', language) : `${t('Pay', language)} ${money(pricing.total)}`} disabled={c.loading} icon={<LockKeyhole size={16} color="#fff" />} onPress={() => c.simulatedPayment()} />

@@ -122,6 +122,19 @@ export class ResolveComplaintDto {
   resolution: string;
 }
 
+export class DisputeTimesheetDto {
+  @IsString() @IsNotEmpty() @MaxLength(1000)
+  reason: string;
+}
+
+export class ResolveTimesheetDisputeDto {
+  @IsIn(['APPROVED', 'REJECTED'])
+  status: 'APPROVED' | 'REJECTED';
+
+  @IsString() @IsNotEmpty() @MaxLength(1000)
+  resolution: string;
+}
+
 // ---------- worker profile and availability ----------
 export class UpsertWorkerDto {
   @IsOptional() @IsInt() @Min(0) @Max(60)

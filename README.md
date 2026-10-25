@@ -112,6 +112,7 @@ The total amount paid by the customer is calculated and split as follows:
 ### Authentication (`/auth`)
 - `POST /auth/request-otp`: Send 6-digit OTP to mobile number (`{ phone }`).
 - `POST /auth/verify-otp`: Verify code and receive JWT Bearer token (`{ phone, code, role }`).
+- Auth and service start/end codes are delivered by Twilio SMS; OTP values are not returned by the API.
 
 ### Service Requests & Booking (`/service-requests`)
 - `POST /service-requests`: Create a new booking draft with category, address, hours, notes.
@@ -134,6 +135,10 @@ The total amount paid by the customer is calculated and split as follows:
 - `POST /assignments/:id/end-otp`: Issue 6-digit completion code to customer.
 - `POST /assignments/:id/end`: Verify End OTP with GPS, calculates verified hours and creates timesheet.
 - `GET /assignments/:id/timesheet`: Retrieve generated timesheet.
+- `POST /timesheets/:id/approve`: Customer approves a timesheet within 24 hours of submission.
+- `POST /timesheets/:id/dispute`: Customer disputes a timesheet within 24 hours (`{ reason }`). Undisputed pending timesheets auto-approve after 24 hours.
+- `GET /admin/timesheets/disputed`: Admin lists timesheets awaiting dispute resolution.
+- `PATCH /admin/timesheets/:id/dispute`: Admin resolves with `{ status: "APPROVED" | "REJECTED", resolution }`.
 
 ### Payments (`/payments`)
 - `POST /payments`: Record customer payment and trigger worker payout (`{ timesheetId, simulateFail? }`).
@@ -187,7 +192,7 @@ npx prisma generate
 npx prisma migrate dev
 npm run start:dev
 ```
-Set `BANK_INFO_ENCRYPTION_KEY` to a 64-character hexadecimal key before saving bank details; production startup requires it. Backend will start on `http://localhost:3000`.
+Set `BANK_INFO_ENCRYPTION_KEY` to a 64-character hexadecimal key before saving bank details. Configure `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_FROM_NUMBER` for SMS delivery; production startup requires all four values. Keep these in the backend environment and never commit them. Backend will start on `http://localhost:3000`.
 
 ### Step 2: Configure Frontend Environment
 In `HStaff/frontend/`:

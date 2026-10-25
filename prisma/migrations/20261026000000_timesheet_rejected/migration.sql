@@ -1,0 +1,1 @@
+ALTER TYPE "TimesheetStatus" ADD VALUE 'REJECTED';

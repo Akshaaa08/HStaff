@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma.service';
 import { RedisService } from '../redis.service';
+import { SmsService } from '../sms/sms.service';
 
 const MAX_ATTEMPTS = 5;
 const LOCK_SECONDS = 300;
@@ -13,6 +14,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private redis: RedisService,
+    private sms: SmsService,
   ) {}
 
   async requestOtp(phone: string) {
@@ -23,7 +25,7 @@ export class AuthService {
     if (recent) throw new BadRequestException('Wait 30 seconds before requesting another code');
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    await this.prisma.otpCode.create({
+    const otpRecord = await this.prisma.otpCode.create({
       data: {
         phone,
         codeHash: await bcrypt.hash(code, 10),
@@ -31,8 +33,13 @@ export class AuthService {
       },
     });
 
-    console.log(`\n=== MOCK SMS === OTP for ${phone}: ${code}\n`);
-    return { message: 'OTP sent (check server console in dev mode)' };
+    try {
+      await this.sms.send(phone, `Your H-Staff sign-in code is ${code}. It expires in 5 minutes.`);
+    } catch (error) {
+      await this.prisma.otpCode.deleteMany({ where: { id: otpRecord.id } });
+      throw error;
+    }
+    return { message: 'OTP sent by SMS' };
   }
 
   async verifyOtp(phone: string, code: string, role?: 'USER' | 'WORKER') {

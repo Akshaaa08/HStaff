@@ -62,7 +62,10 @@ function PhoneVerify({
       setSent(true);
       if (res?.message) setServerMsg(res.message);
     } catch (e: any) {
-      // If backend is in dev mode or unreachable, provide seamless demo fallback
+      if (e?.statusCode) {
+        setErr(e.message || 'Could not send the OTP by SMS. Please try again.');
+        return;
+      }
       setSent(true);
       setServerMsg(e?.message || 'Demo OTP code: 123456');
     } finally {
@@ -81,8 +84,7 @@ function PhoneVerify({
       }
       setVerified(true);
     } catch (e: any) {
-      // Support demo fallback code if offline
-      if (code === AUTH_OTP) {
+      if (!e?.statusCode && code === AUTH_OTP) {
         setVerified(true);
       } else {
         setErr(e?.message || 'That code doesn’t match.');

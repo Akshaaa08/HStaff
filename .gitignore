@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .env
-.env.*
-.env.local
-!.env.example
+e2e-out.txt
+out.txt
+e2e-run.txt
+*.tsbuildinfo

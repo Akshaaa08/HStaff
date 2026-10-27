@@ -130,24 +130,24 @@ model Skill {
 }
 
 model WorkerProfile {
-  id                 String             @id @default(uuid())
-  user               User               @relation(fields: [userId], references: [id])
-  userId             String             @unique
+  id                 String               @id @default(uuid())
+  user               User                 @relation(fields: [userId], references: [id])
+  userId             String               @unique
   profileImageUrl    String?
-  verificationStatus VerificationStatus @default(PENDING)
-  experienceYears    Int                @default(0)
-  baseHourlyRate     Int                @default(0)
-  serviceRadiusKm    Int                @default(10)
+  verificationStatus VerificationStatus   @default(PENDING)
+  experienceYears    Int                  @default(0)
+  baseHourlyRate     Int                  @default(0)
+  serviceRadiusKm    Int                  @default(10)
   latitude           Float?
   longitude          Float?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
   categories         WorkerCategory[]
   skills             WorkerSkill[]
   offers             WorkerOffer[]
   assignments        Assignment[]
   payouts            Payout[]
-    availability WorkerAvailability[]
+  availability       WorkerAvailability[]
 }
 
 model WorkerCategory {
@@ -186,7 +186,7 @@ model ServiceRequest {
   updatedAt     DateTime      @updatedAt
   offers        WorkerOffer[]
   assignments   Assignment[]
-    skillIds Int[] @default([])
+  skillIds      Int[]         @default([])
 }
 
 model WorkerOffer {
@@ -250,21 +250,26 @@ model Timesheet {
   submittedAt       DateTime        @default(now())
   approvedAt        DateTime?
   payment           Payment?
+  disputeReason     String?
+  disputedAt        DateTime?
+  resolvedBy        String?
+  resolvedAt        DateTime?
+  resolution        String?
 }
 
 model Payment {
-  id          String        @id @default(uuid())
-  timesheetId String        @unique
-  timesheet   Timesheet     @relation(fields: [timesheetId], references: [id], onDelete: Restrict)
-  amount      Int
-  currency    String        @default("INR")
-  status      PaymentStatus @default(PENDING)
-  gatewayRef  String?
-  paidAt      DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  payout      Payout?
-    refundedAmount Int       @default(0)
+  id             String        @id @default(uuid())
+  timesheetId    String        @unique
+  timesheet      Timesheet     @relation(fields: [timesheetId], references: [id], onDelete: Restrict)
+  amount         Int
+  currency       String        @default("INR")
+  status         PaymentStatus @default(PENDING)
+  gatewayRef     String?
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  payout         Payout?
+  refundedAmount Int           @default(0)
   refundReason   String?
   refundedAt     DateTime?
 
@@ -272,16 +277,16 @@ model Payment {
 }
 
 model Payout {
-  id        String        @id @default(uuid())
-  payment   Payment       @relation(fields: [paymentId], references: [id])
-  paymentId String        @unique
-  worker    WorkerProfile @relation(fields: [workerId], references: [id])
-  workerId  String
-  amount    Int
-  status    PaymentStatus @default(PENDING)
-  settledAt DateTime?
-  createdAt DateTime      @default(now())
-    gatewayRef String?
+  id         String        @id @default(uuid())
+  payment    Payment       @relation(fields: [paymentId], references: [id])
+  paymentId  String        @unique
+  worker     WorkerProfile @relation(fields: [workerId], references: [id])
+  workerId   String
+  amount     Int
+  status     PaymentStatus @default(PENDING)
+  settledAt  DateTime?
+  createdAt  DateTime      @default(now())
+  gatewayRef String?
 }
 
 model Rating {
@@ -322,6 +327,7 @@ model Complaint {
   @@index([respondentId])
   @@index([status])
 }
+
 model AuditLog {
   id         String   @id @default(uuid())
   actorId    String?
@@ -333,6 +339,7 @@ model AuditLog {
 
   @@index([entityType, entityId])
 }
+
 model Notification {
   id        String    @id @default(uuid())
   userId    String
@@ -345,6 +352,7 @@ model Notification {
 
   @@index([userId, createdAt])
 }
+
 model WorkerAvailability {
   id          String        @id @default(uuid())
   worker      WorkerProfile @relation(fields: [workerId], references: [id])

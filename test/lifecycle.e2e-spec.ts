@@ -5,8 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma.service';
  
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const request = require('supertest');
+import request from 'supertest';
  
 // Unique phones per run so reruns never collide.
 const stamp = String(Date.now()).slice(-8);
